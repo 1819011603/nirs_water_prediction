@@ -49,6 +49,8 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     pdf_name = get_log_name(all_name,".pdf","./pdf")
     plt.savefig(pdf_name, format='pdf')
     # plt.savefig(eps_name, format='eps')
+
+    print("pdf save in {}".format(pdf_name))
     plt.show()
     pass
 
@@ -216,10 +218,12 @@ if __name__ == '__main__':
     # preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
     preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
     preprocess = [['dt']]
+    preprocess = [['sg']]
     # features = [["pca"], ["cars"], ["spa"]]
     features = [ ["pca"], ["cars","pca"]]
     features = [["none"] , ["pca"]]
     features = [["none"]]
+    features = [["pca"]]
     models = ["svr"]
 
     from urllib.request import getproxies
