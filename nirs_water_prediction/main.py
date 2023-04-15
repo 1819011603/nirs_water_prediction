@@ -1,13 +1,57 @@
-
+from scipy.interpolate import make_interp_spline
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score
+from sklearn.svm import SVR
 
 from nirs.nirs_feature import FeatureSelection
 from nirs.nirs_models import Model
 from nirs.nirs_processing import Preprocess
 from utils import *
 import numpy as np
+import  nirs.util_paint
+
+def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(8,8),dpi=150)
+    # 构造模拟数据
+    x = y_test*100
+    y = y_pred_test*100
+
+    # 增加一列常数1，以便拟合常数项b0
+    X = np.c_[np.ones(x.shape[0]), x]
+
+    # 计算回归系数
+    beta_hat = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)
+    beta1, beta0 = np.polyfit(x, y, 1)
+
+
+    X_ = np.linspace(0, 80, 1000)
+    Y_ = beta1*X_+beta0
+
+    # 绘制数据散点图和回归直线
+
+
+    plt.scatter(x, y,s = 50,color="none",edgecolors="black",label= "$R^2_{P}$=" + f"{r2:.4f}, RMSEP={RMSEP:.4f}")
+    plt.scatter([0], [0],color="none",edgecolors="none",label="$R^2_{CV}$=" + f"{R2:.4f}, RMSECV={RMSECV:.4f}")
+    plt.scatter([0], [0],color="none",edgecolors="none",label=f"RPD={RPD:.4f}")
+    plt.plot(X_, Y_, 'r', label='y=%.4fx+%.4f' % (beta1, beta0))
+
+    plt.xlim(0,80)
+    plt.ylim(0,80)
+
+    plt.xlabel('Measure value/%')
+    plt.ylabel('Predictive value/%')
+
+    plt.legend()
+    eps_name = get_log_name(all_name,".eps","./eps")
+    pdf_name = get_log_name(all_name,".pdf","./pdf")
+    plt.savefig(pdf_name, format='pdf')
+    # plt.savefig(eps_name, format='eps')
+    plt.show()
+    pass
+
 
 def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_args, model_args,index_set=None):
     import time
@@ -100,19 +144,22 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     print(f"t_time: {t_time:.4f}s")
 
     # 指标列表
-    indicators = [ R2, RMSECV, r2, RMSEP, MAE, model_time, total_time, t_time]
+    indicators = [ R2, RMSECV, r2, RMSEP,RPD, MAE, model_time, total_time, t_time]
     indicators = [f"{x:.4f}" for x in indicators]
 
+
+
     params_name = ["预处理参数","特征选择参数", "模型参数" ,"真实值" , "预测值"]
-    params = [preprocess_args, feature_selection_args_list, best_params, y_test, y_pred_test]
+    params = [preprocess_args, feature_selection_args_list, ', '.join([f'{str(k)[:6]}={str(v)[:6]}' for k,v in best_params.items()]), y_test, y_pred_test]
     params = [str(x) for x in params]
 
 
-    header = ["全名","预处理","特征选择算法", "模型" , 'R2', 'RMSECV', "r2", 'RMSEP', 'MAE', "CPU时间", "流程时间", "总时间", *params_name]
+    header = ["全名","预处理","特征选择算法", "模型" , 'R2', 'RMSECV', "r2", 'RMSEP', "RPD",'MAE', "CPU时间", "流程时间", "总时间", *params_name]
 
     row = [all_name,"+".join(preprocess_args["method"]).upper(),"+".join(feature_selection_args["method"]).upper(),model_args["model"].upper() ,*indicators,*params]
     save2excel(row,header)
-
+    if  para.paint is not False:
+        paint(y_test,y_pred_test,R2,RMSECV,r2,RMSEP,RPD,all_name)
 
     print("\n\n\n")
 
@@ -166,17 +213,23 @@ if __name__ == '__main__':
 
     # 模型参数修改在parameters.py中
     # preprocess=[ ["baseline_correction"]]
-    preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
-    features = [["none"],["cars"], ["pca"], ["cars","pca"]]
+    # preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
+    preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
+    preprocess = [['dt']]
+    # features = [["pca"], ["cars"], ["spa"]]
     features = [ ["pca"], ["cars","pca"]]
-    features = [  ["none"]]
-    # features = [["none"]]
-    models = ["plsr"]
+    features = [["none"] , ["pca"]]
+    features = [["none"]]
+    models = ["svr"]
 
+    from urllib.request import getproxies
+
+    啊= getproxies()
 
     # 是否需要开启参数寻优， 参数寻优的范围设置在nirs_models.py中
     para.optimal = True
-    # para.optimal = False
+    para.optimal = False
+    para.paint=True
 
 
 

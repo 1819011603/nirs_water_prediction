@@ -3,12 +3,15 @@ import pathlib
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from matplotlib.font_manager import FontProperties
+
 from numpy import mat, zeros
 from scipy import interpolate
 from torch.utils.data import DataLoader, TensorDataset
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
+
+import nirs.util_paint
+
 
 def loadDataSet01(filename, Separator=', '):
     fr = open(filename)
@@ -29,8 +32,6 @@ def loadDataSet01(filename, Separator=', '):
     fr.close()
     return np.array(x), np.array(y).ravel()
 
-X_test, y_test = loadDataSet01(pathlib.Path("../data/test.txt").absolute())
-X_train, y_train = loadDataSet01(pathlib.Path("../data/train.txt").absolute())
 
 import numpy as np
 import pandas as pd
@@ -38,10 +39,10 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from nirs.nirs_processing import sg,dt,snv
 # 读取数据
-
+from  nirs.parameters import X_train_copy,X_test
 # 主成分分析
 pca = PCA()
-data = np.log10(1/X_train)
+data = np.concatenate((X_train_copy,X_test),axis=0)
 # data = dt(sg(data))
 
 pca.fit(data)
@@ -150,33 +151,36 @@ wavelengths = np.linspace(wavelengths[0], wavelengths[-1], num=len(pc1_loadings)
 
 selected_wavelengths = np.array([12, 99, 105, 210, 226, 316, 400, 423, 445, 468, 476, 537, 545, 579, 612, 675, 697, 707, 845, 873, 990])
 
-fig, ax = plt.subplots(figsize=(12, 6),dpi=300)
-from nirs.parameters import xpoints
+fig, ax = plt.subplots(figsize=(9, 6),dpi=100)
+from nirs.parameters import xpoints, X_train
+
 # ax = plt.subplot(2, 1, 1)
 ax.plot(wavelengths, pc1_loadings, label='PC1')
 ax.plot(wavelengths, pc2_loadings, label='PC2')
 ax.plot(wavelengths, pc3_loadings, label='PC3')
-ax.scatter(wavelengths[selected_wavelengths1], pc1_loadings[selected_wavelengths1], marker='s', s=100, color='red',label="Characteristic wavelength")
-ax.scatter(wavelengths[selected_wavelengths2], pc2_loadings[selected_wavelengths2], marker='s', s=100, color='red')
-ax.scatter(wavelengths[selected_wavelengths3], pc3_loadings[selected_wavelengths3], marker='s', s=100, color='red')
-plt.xticks(np.arange(256)[::17],xpoints[::17])
+ax.scatter(wavelengths[selected_wavelengths1], pc1_loadings[selected_wavelengths1], marker='s', s=100,  color='none',edgecolor="red",label="Characteristic wavelength")
+ax.scatter(wavelengths[selected_wavelengths2], pc2_loadings[selected_wavelengths2], marker='s', s=100,  color='none',edgecolor="red")
+ax.scatter(wavelengths[selected_wavelengths3], pc3_loadings[selected_wavelengths3], marker='s', s=100,  color='none',edgecolor="red")
+plt.xticks(np.arange(256)[::51],xpoints[::51])
 ax.set_xlabel('Wavelengths(nm)')
 ax.set_ylabel('PCA Loading Value')
-font = FontProperties()
-font.set_weight('bold')
-font.set_size(16)
-font.set_family('Arial')
+plt.ylim(-0.05,0.15)
 
 # 设置标题
 title = '(a)'
 # ax.set_title(title, fontproperties=font, y=-0.2)
 
-ax.legend()
+ax.legend(loc="upper right", ncol=2)
 from utils import get_log_name
-name = get_log_name("pca", "jpeg", "./pca")
-print("save picture in {}".format(name))
-plt.tight_layout()
-plt.savefig(name, dpi=300)
+
+suff = 'pdf'
+picture_name = "pca"
+dir_path = "./pdf"
+picture_path = get_log_name(picture_name, suff=suff, dir_path=dir_path)
+
+print("save in {}".format(picture_path))
+plt.savefig(picture_path, format='pdf')
+plt.show()
 
 def nihe1(x,y,num=1024):
     f = interpolate.interp1d(x, y, kind='cubic')
@@ -185,26 +189,32 @@ def nihe1(x,y,num=1024):
     x_new = np.linspace(x[0], x[-1], num=num, endpoint=True)
     y_new = f(x_new)
     return x_new,y_new
-fig, ax = plt.subplots(figsize=(12, 6),dpi=300)
+fig, ax = plt.subplots(figsize=(9, 6),dpi=100)
 # ax = plt.subplot(2, 1, 2)
 a,b = nihe1(np.arange(256)[::seq],data.mean(axis=0)[::seq])
 ax.plot(a,b, label='Average spectra')
 m =  data.mean(axis=0)
-ax.scatter(a[(selected_wavelengths).astype(int)],b[(selected_wavelengths).astype(int)], marker='s', s=100, color='red',label="Characteristic wavelength")
+ax.scatter(a[(selected_wavelengths).astype(int)],b[(selected_wavelengths).astype(int)], marker='s', s=100, color='none',edgecolor="red",label="Characteristic wavelength")
 # 设置标题
 ax.set_xlabel('Wavelengths(nm)')
 ax.set_ylabel('Reflectance')
 
-plt.xticks(np.arange(256)[::17],xpoints[::17])
+plt.xticks(np.arange(256)[::51],xpoints[::51])
 result = xpoints[(selected_wavelengths/4).astype(int)]
 plt.legend()
 result.sort()
-print(*result,sep=",")
+print(*result,sep="、")
 
 title = '(b)'
 # ax.set_title(title, fontproperties=font, y=-0.2)
 from utils import get_log_name
-plt.tight_layout()
-name = get_log_name("pca", "jpeg", "./pca")
-print("save picture in {}".format(name))
-plt.savefig(name, dpi=300)
+
+suff = 'pdf'
+picture_name = "pca"
+dir_path = "./pdf"
+picture_path = get_log_name(picture_name, suff=suff, dir_path=dir_path)
+
+print("save in {}".format(picture_path))
+plt.savefig(picture_path, format='pdf')
+
+plt.show()

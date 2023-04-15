@@ -1,8 +1,9 @@
 import numpy as np
 import pywt
-from scipy import signal
+from scipy import signal, sparse
 from scipy.interpolate import interp1d
 from scipy.signal import find_peaks, peak_widths
+from scipy.sparse.linalg import spsolve
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 from scipy.signal import savgol_filter
@@ -58,7 +59,12 @@ def msc(Data):
         msc[i, :] = (y - b) / k
     return np.array(msc)
 
-
+def D1(data):
+    n, p = data.shape
+    Di = np.ones((n, p - 1))
+    for i in range(n):
+        Di[i] = np.diff(data[i])
+    return np.array(Di)
 # 移动平滑算法（Moving Average Smoothing）
 def mas(X, window_size=11):
     # 使用 numpy 的 convolve 函数进行平滑处理
@@ -71,6 +77,11 @@ def mas(X, window_size=11):
 #     scaler = StandardScaler(with_mean=True, with_std=True)
 #     return scaler.fit_transform(data)
 # 标准正态变换
+
+def snv1(data):
+    from sklearn.preprocessing import StandardScaler
+    return StandardScaler().fit_transform(data)
+
 def snv(data):
     m = data.shape[0]
     n = data.shape[1]
@@ -84,6 +95,16 @@ def snv(data):
     return np.array( data_snv)
 
 # 基线偏移校正
+def ma(a):
+    WSZ = 5
+    for i in range(a.shape[0]):
+        out0 = np.convolve(a[i], np.ones(WSZ, dtype=int), 'valid') / WSZ # WSZ是窗口宽度，是奇数
+        r = np.arange(1, WSZ - 1, 2)
+        start = np.cumsum(a[i, :WSZ - 1])[::2] / r
+        stop = (np.cumsum(a[i, :-WSZ:-1])[::2] / r)[::-1]
+        a[i] = np.concatenate((start, out0, stop))
+    return np.array(a)
+
 def boc(X):
     # 对每个光谱进行基线偏移校正
     X_boc = X - X.min(axis=1)[:, np.newaxis]
@@ -105,28 +126,15 @@ def boc(X):
 
 
 # 基线校正
-def piecewise_polyfit_baseline_correction(X, window_size=21, order=3, num_segments=10):
-    # 将每个光谱分为num_segments个段
-    num_points = X.shape[1]
-    segment_size = int(np.ceil(num_points / num_segments))
-    left_edges = np.arange(0, num_points, segment_size)
-    right_edges = left_edges + segment_size - 1
-    right_edges[-1] = num_points - 1
 
-    # 对每个段进行多项式拟合
-    for i in range(num_segments):
-        left_edge = left_edges[i]
-        right_edge = right_edges[i]
-        segment_X = X[:, left_edge:right_edge + 1]
-        segment_indices = np.arange(left_edge, right_edge + 1)
-        for j in range(segment_X.shape[0]):
-            segment_X[j] = savgol_filter(segment_X[j], window_size, order)
-        segment_baseline = np.mean(segment_X, axis=0)
-        X[:, left_edge:right_edge + 1] = X[:, left_edge:right_edge + 1] - segment_baseline
-
-    return X
-
-
+def piecewise_polyfit_baseline_correction(X):
+    X_corrected = np.zeros_like(X)
+    for i in range(X.shape[0]):
+        # 计算每个样本的baseline
+        baseline = signal.savgol_filter(X[i, :], 51, 3)
+        # 将baseline从原始数据中去除
+        X_corrected[i, :] = X[i, :] - baseline
+    return X_corrected
 
 
 def dwt(x0):
@@ -163,7 +171,14 @@ def mms(data):
     return MinMaxScaler().fit_transform(data)
 def none(X):
     return X
-
+def MA(a, WSZ=5):
+    for i in range(a.shape[0]):
+        out0 = np.convolve(a[i], np.ones(WSZ, dtype=int), 'valid') / WSZ # WSZ是窗口宽度，是奇数
+        r = np.arange(1, WSZ - 1, 2)
+        start = np.cumsum(a[i, :WSZ - 1])[::2] / r
+        stop = (np.cumsum(a[i, :-WSZ:-1])[::2] / r)[::-1]
+        a[i] = np.concatenate((start, out0, stop))
+    return np.array(a)
 # 一阶导数
 def d1(data):
     n, p = data.shape

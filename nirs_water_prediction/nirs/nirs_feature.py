@@ -68,7 +68,7 @@ class FeatureSelection:
 
 
 
-    def transform(self, X, y):
+    def transform(self, X, y=None):
 
         item = self.method
         method = self.pls

@@ -3,6 +3,8 @@ from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_val_score
 
+from nirs.RegressionNet import Regression
+
 
 class RBFNet(BaseEstimator,RegressorMixin):
     def __init__(self, hidden_shape, sigma=1.0,alpha=0.1,kernel="gaussian",gamma=1):
@@ -113,7 +115,7 @@ class Model:
             self.model = MLPRegressor(
                     **self.params
 
-)
+                )
         elif self.method == "plsr":
             from sklearn.cross_decomposition import PLSRegression
 

@@ -79,10 +79,10 @@ feature_selection_args = {
     "method": ["cars", "pca"],
     "pca": {
         # 主成分个数
-        "n_components": 15,
+        "n_components": 30,
     },
     "plsr": {
-        "n_components": 15,
+        "n_components": 11,
     },
     "cars": {
         # cars的index
@@ -90,8 +90,13 @@ feature_selection_args = {
                   127, 128, 153, 158, 175, 180, 184, 197, 198, 202, 205, 206, 214, 227, 240, 241, 255],
     },
 
+    "spa": {
+        # cars的index
+        "index": [219,6,195,134,46,3,182,158,179,254,191,188,161,84,165,2,166,171,176,193,167,174,172,196,163,177,198,175,189,159,242,180,168],
+    },
+
     # 使用index的特征提取方法
-    "index_set": ["cars", "ga"],
+    "index_set": ["cars", "ga","spa"],
 
 }
 
@@ -102,35 +107,47 @@ model_args = {
 
     # svr
     "svr": {
-        "C": 453,
-        "gamma": 64,
-        "kernel": "rbf",
+        # "C": 100,
+        # "gamma": 'scale',
+        # "C": 10,
+        # "gamma":23,
+# 9.91963387e+02 2.52168033e-01 2.39470555e-01  随机
+# 7.68476853e+02 4.96147122e+00 1.64400238e-01		  AGA
+
+        # 9.73668478e+02 3.71832582e+00 2.08149113e-03  IPSO
+        # 641.82456427   3.56104933   0.7002129
+        # "C":577.2508287,
+        # "gamma": 65.02340764,
+        "C": 577.2508287,
+        "gamma": 65.02340764,
+         # 'epsilon': 0.7002129	 ,
+        "kernel": "linear",
     },
 
     # pls
     "plsr": {
-        "n_components": 11,
+        "n_components": 17,
     },
     "bpnn": {
 
-        "hidden_layer_sizes": (15,),
+        "hidden_layer_sizes": (32,8),
         "activation": 'logistic',
-        "solver": 'adam',
-        "alpha": 0.0001,
+        "solver": 'sgd',
+        # "alpha": 0.0001,
         "learning_rate": 'constant',
-        "learning_rate_init": 0.06,
-        "power_t": 0.5,
-        "max_iter": 10000,
-        "shuffle": False,
-        "tol": 0.0001,
-        "verbose": False,
-        "warm_start": False,
-        "momentum": 0.9, "nesterovs_momentum": True, "early_stopping": False,
-        "validation_fraction": 0.1, "beta_1": 0.937, "beta_2": 0.999,
-        "epsilon": 1e-08,
-
-        "n_iter_no_change": 10,
-        "max_fun": 15000
+        "learning_rate_init": 0.01,
+        # "power_t": 0.5,
+        "max_iter": 20000,
+        # "shuffle": False,
+        # "tol": 0.0001,
+        # "verbose": False,
+        # "warm_start": False,
+        # "momentum": 0.9, "nesterovs_momentum": True, "early_stopping": False,
+        # "validation_fraction": 0.1, "beta_1": 0.937, "beta_2": 0.999,
+        # "epsilon": 1e-08,
+        #
+        # "n_iter_no_change": 10,
+        # "max_fun": 15000
 
     },
     # SG+GT
@@ -180,7 +197,12 @@ def kennardstonealgorithm(x_variables, k_rate):
 
 X_test, y_test = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/test.txt".replace("/","\\"))
 X_train, y_train = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/train.txt".replace("/","\\"))
+X_train = np.log10(1/X_train)
+X_test = np.log10(1/X_test)
 
+
+X_train_copy, y_train_copy = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/train_copy.txt".replace("/","\\"))
+X_train_copy = np.log10(1/X_train_copy)
 m5spec_moisture, m5spec_moisture_y = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/m5spec_oil.txt".replace("/","\\"),Separator=",")
 
 selected_sample_numbers, remaining_sample_numbers = kennardstonealgorithm(m5spec_moisture, 0.8)
@@ -188,3 +210,7 @@ m5spec_moisture_train, m5spec_moisture_test = m5spec_moisture[selected_sample_nu
     remaining_sample_numbers]
 m5spec_moisture_y_train, m5spec_moisture_y_test = m5spec_moisture_y[selected_sample_numbers], m5spec_moisture_y[
     remaining_sample_numbers]
+
+
+# X_train,X_test=m5spec_moisture_train, m5spec_moisture_test
+# y_train,y_test=m5spec_moisture_y_train, m5spec_moisture_y_test

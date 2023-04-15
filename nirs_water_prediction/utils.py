@@ -41,10 +41,8 @@ def get_log_name(pre="recode",suff= "log",dir_path="./",filter_method=None):
         # return "{}/{}{}_{}{}".format(f,pre,max1 + 1,day,suff)
         filter_methods=[]
         if filter_method is None:
-            filter_method=[savitzky_golay, detrend]
-        for i,method in enumerate(filter_method):
-            filter_methods.append(filter_method[i].__name__)
-        return "{}/{}{}_{}_{}{}".format(f,pre,max1 + 1,"_".join(filter_methods),day,suff)
+            pass
+        return "{}/{}{}_{}{}".format(f,pre,max1 + 1,day,suff)
 
 # def
 
@@ -66,10 +64,10 @@ def save2excel(row, header, path='tmp.xlsx'):
 
     path = "./result/" + path
     total = 3
-    time = total
+    time1 = total
 
     complete = False
-    while time > 0 and not  complete:
+    while time1 > 0 and not  complete:
         try:
             create_excel(path)
 
@@ -90,14 +88,14 @@ def save2excel(row, header, path='tmp.xlsx'):
             complete = True
             print(f"save in {path}")
         except Exception as e:
-            if time == 1:
+            if time1 == 1:
                 raise str(e)
             else:
-                print(f"{path} 第{total-time+1}保存失败, 1s后重试 ")
+                print(f"{path} 第{total-time1+1}保存失败, 1s后重试 ")
                 import time
                 time.sleep(1)
         finally:
-            time-=1
+            time1-=1
 
 
 def create_excel(path):
