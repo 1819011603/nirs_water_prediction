@@ -8,11 +8,11 @@ from sklearn.metrics import mean_squared_error, r2_score
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=7)
-        self.pool1 = nn.MaxPool1d(kernel_size=7)
-        self.conv2 = nn.Conv1d(16, 32, kernel_size=7)
-        self.pool2 = nn.MaxPool1d(kernel_size=7)
-        self.conv3 = nn.Conv1d(32, 64, kernel_size=4)
+        self.conv1 = nn.Conv1d(1, 16, kernel_size=5)
+        self.pool1 = nn.MaxPool1d(kernel_size=3)
+        self.conv2 = nn.Conv1d(16, 32, kernel_size=5)
+        self.pool2 = nn.MaxPool1d(kernel_size=5)
+        self.conv3 = nn.Conv1d(32, 64, kernel_size=16)
         # self.pool3 = nn.AvgPool1d(kernel_size=4)
         self.fc1 = nn.Linear(64, 1)
 

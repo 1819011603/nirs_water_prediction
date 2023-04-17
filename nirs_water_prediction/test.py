@@ -8,16 +8,32 @@ from sklearn.metrics import mean_squared_error, r2_score
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=7)
-        self.pool1 = nn.MaxPool1d(kernel_size=7)
+        # self.conv1 = nn.Conv1d(1, 16, kernel_size=9)
+        # self.pool1 = nn.MaxPool1d(kernel_size=9)
+
+        self.conv4 = nn.Conv1d(1, 16, kernel_size=5)
+        self.pool4 = nn.MaxPool1d(kernel_size=5)
+
+        self.conv5 = nn.Conv1d(1, 16, kernel_size=15)
+        self.pool5 = nn.MaxPool1d(kernel_size=15)
+
+
+
         self.conv2 = nn.Conv1d(16, 32, kernel_size=7)
         self.pool2 = nn.MaxPool1d(kernel_size=7)
-        self.conv3 = nn.Conv1d(32, 64, kernel_size=4)
+        self.conv3 = nn.Conv1d(32, 64, kernel_size=8)
         # self.pool3 = nn.AvgPool1d(kernel_size=4)
         self.fc1 = nn.Linear(64, 1)
 
     def forward(self, x):
-        x = self.pool1(torch.relu(self.conv1(x)))
+        import torch
+
+
+        # a = self.pool1(torch.relu(self.conv1(x)))
+        y = self.pool4(torch.relu(self.conv4(x)))
+        z = self.pool5(torch.relu(self.conv5(x)))
+
+        x = torch.cat((y,z),dim=2)
         x = self.pool2(torch.relu(self.conv2(x)))
         x = torch.relu(self.conv3(x))
         x = x.view(-1, 64)
@@ -38,7 +54,7 @@ y_tensor = torch.Tensor(y.reshape(-1, 1))
 
 cur_lr = 0.1
 # 定义学习率衰减率和衰减周期
-decay_rate = 0.97
+decay_rate = 0.9999
 decay_steps = 200
 # 定义优化器
 optimizer = torch.optim.Adam(model.parameters(), lr=cur_lr)
