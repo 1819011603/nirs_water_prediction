@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.cluster import KMeans
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import cross_val_score
 
 from nirs.RegressionNet import Regression
@@ -55,9 +56,19 @@ class RBFNet(BaseEstimator,RegressorMixin):
         return np.dot(G, self.weights)
 def svr_set(trial,**param):
     return {
+        "C": trial.suggest_loguniform('C', 1e-7, 7e2),
+        "gamma": trial.suggest_loguniform('gamma', 1e-7, 1e2),
+        "epsilon": trial.suggest_loguniform('epsilon', 1e-7, 1e0),
+        "kernel": trial.suggest_categorical("kernel", ['rbf']),
+
+    }
+
+
+def lssvm_set(trial,**param):
+    return {
         "C": trial.suggest_loguniform('C', 1e-3, 2e3),
         "gamma": trial.suggest_loguniform('gamma', 1e-3, 2e3),
-        "epsilon": trial.suggest_loguniform('epsilon', 1e-3, 1e0),
+        "sigma": trial.suggest_loguniform('epsilon', 1e-3, 1e0),
         "kernel": trial.suggest_categorical("kernel", ['rbf']),
 
     }
@@ -123,14 +134,24 @@ class Model:
         elif self.method == 'rbf':
             self.model = RBFNet(**self.params)
 
+        elif self.method=='lar':
+            from sklearn.linear_model import LassoLars
+
+            # 构造LassoLars对象
+            self.model = LassoLars(**self.params)
+        elif self.method == 'lssvm':
+            from nirs.my_model import LSSVM
+            self.model = LSSVM(**self.params)
         else:
             raise ValueError('Unsupported model method.')
 
     #     预测的时候才要用
     def fit(self, X, y):
+
         self.model.fit(X, y)
 
     def predict(self, X):
+
         return self.model.predict(X)
 
     def best_para(self,model_str,X_,Y_):
@@ -152,9 +173,20 @@ class Model:
 
             estimator =  Model(method=model_str,**param_grid)
             # Evaluate the estimator using cross-validation
-            scores = cross_val_score(estimator.model, X_, Y_, cv=5, scoring='neg_mean_squared_error')
-
+            # a = np.arange(len(Y_))
+            # np.random.shuffle(a)
+            # X_ = X_[a,:]
+            # Y_ = Y_[a,:]
+            scores = cross_val_score(estimator.model, X_, Y_, cv=10, scoring='neg_mean_squared_error')
             return -scores.mean()
+
+
+            # i = 400
+            # estimator.fit(X_[:i],Y_[:i])
+            # j = 400
+            # y_pred = estimator.predict(X_[j:-80])
+            #
+            # return mean_squared_error(Y_[j:-80], y_pred)
 
             # Create an instance of the Optuna study object
 

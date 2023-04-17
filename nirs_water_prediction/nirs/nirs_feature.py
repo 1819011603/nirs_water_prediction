@@ -1,6 +1,8 @@
 import inspect
 
+import numpy as np
 from sklearn.base import BaseEstimator
+from sklearn.linear_model import LassoLars
 
 from utils import getDataIndex
 
@@ -38,7 +40,33 @@ def mds(params):
 
 def none(params):
     return None
+class Lasso_(BaseEstimator):
+    def __init__(self,**params):
+        self.params = params
+        self.index = None
+    def transform(self, X ,y=None):
+        if self.index is not None:
+            return X[:,self.index],y
+        raise "无 index"
 
+    def fit(self, X ,y = None):
+        print("fit方法")
+
+        model = LassoLars(**self.params)
+        model.fit(X, y)
+
+        # 查看模型选择的特征系数
+        coef = model.coef_
+
+        # 查看特征系数不为零的特征索引
+        feature_index = np.where(coef != 0)[0]
+
+        print(feature_index)
+        self.index = feature_index
+
+        return X[:,feature_index],y
+def lasso(params):
+    return Lasso_(**params)
 
 
 

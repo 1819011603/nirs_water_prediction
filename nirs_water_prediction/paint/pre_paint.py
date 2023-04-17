@@ -16,6 +16,8 @@ plt.rcParams["font.sans-serif"]=["Arial"]
 plt.rcParams["font.family"]="Arial"
 # 解决负号无法显示的问题
 plt.rcParams['axes.unicode_minus'] =False
+
+import nirs.util_paint
 def line_chart( ypoints, humidity=None):
     """
     线型参数:ls  '‐' 实线，'‐‐' 破折线，'‐.' 点划线，':' 虚线。
@@ -45,7 +47,7 @@ def line_chart( ypoints, humidity=None):
         X_Y_Spline = make_interp_spline(xpoints, ypoints)
         X_ = np.linspace(min(xpoints), max(xpoints), 1000)
         Y_ = X_Y_Spline(X_)
-        plt.plot(X_, Y_, ls='solid', lw=1 ,label=humidity,color='blue')
+        plt.plot(X_, Y_, ls='solid', lw=1 ,label=humidity)
     else:
         plt.plot(xpoints[len(xpoints ) -len(ypoints):], ypoints, ls='solid', lw=1)
     # 右上角出现小方格  在plt.plot() 定义后plt.legend() 会显示该 label 的内容，否则会报error: No handles with labels found to put in legend.
@@ -65,13 +67,13 @@ def paint(X,pre):
 
         line_chart(tea,None)
     # t.wiener_filtering()
-    suff='jpg'
+    suff='pdf'
     picture_name=pre
     dir_path="./pre1"
     picture_path = get_log_name(picture_name, suff=suff, dir_path=dir_path)
-    plt.tight_layout()
+    # plt.tight_layout()
     print("save in {}".format(picture_path))
-    plt.savefig(picture_path)
+    plt.savefig(picture_path,format='pdf')
     # plt.show()
 
 if __name__ == '__main__':
@@ -83,8 +85,8 @@ if __name__ == '__main__':
     # preprocess = [["none"], ["SNV"], ["MSC"], ["SG"], ["DT"], ["MSC", "DT"], ["SG", "DT"], ["DT", "DT"]]
     # 多元散射校正（MSC）、标准正态变换(SNV)、离散小波变换(DWT)、一阶导数、正交信号校正(orthogonal signal correction， OSC)、Savitzky-Golay(S-G)平滑滤波和去趋势(Detrend)
     preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"],['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
-    preprocess = [ ["piecewise_polyfit_baseline_correction"]]
-    # preprocess = [["none"]]
+    # preprocess = [ ["piecewise_polyfit_baseline_correction"]]
+    preprocess = [["none"]]
     for p in preprocess:
         preprocess_args["method"] = p
 

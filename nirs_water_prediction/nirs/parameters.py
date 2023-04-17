@@ -95,6 +95,13 @@ feature_selection_args = {
         "index": [219,6,195,134,46,3,182,158,179,254,191,188,161,84,165,2,166,171,176,193,167,174,172,196,163,177,198,175,189,159,242,180,168],
     },
 
+    'lasso': {
+
+        'alpha': 0.0005,
+        'normalize': False
+
+    },
+
     # 使用index的特征提取方法
     "index_set": ["cars", "ga","spa"],
 
@@ -104,8 +111,20 @@ feature_selection_args = {
 model_args = {
 
     "model": "plsr",
+    'lar':{
 
+        'alpha':0.0003,
+        'normalize':False
+
+    },
     # svr
+
+    "lssvm":{
+        "C":10,
+        "gamma":3.7,
+        'sigma':0.1
+        # 'epsilon':0.0020
+    },
     "svr": {
         # "C": 100,
         # "gamma": 'scale',
@@ -121,14 +140,28 @@ model_args = {
         # "C": 577.2508287,
         # "gamma": 65.02340764,
          # 'epsilon': 0.7002129	 ,
+# C=768.47, gamma=4.9614, epsilo=0.1644
+# C=641.82, gamma=3.5610, epsilo=0.7002
+# C=973.66, gamma=3.7183, epsilo=0.0020
+# 'C': 998.8046, 'gamma': 0.4724, 'epsilon': 0.7003, 'kernel': 'rbf'
+# 'C': 768.47, 'gamma':4.9614, 'epsilon':0.1644, 'kernel': 'rbf'
+# 'C': 973.66, 'gamma':3.7183,  'epsilon':0.0020, 'kernel': 'rbf'
+#         C=991.96, gamma=0.2521, epsilo=0.2394
+# 'C':991.96, 'gamma':.2521,  'epsilon':0.2394, 'kernel': 'rbf'
+#         C=128, gamma=16, epsilo=0.297
+# 'C':128, 'gamma':16,  'epsilon':0.297, 'kernel': 'rbf'
 
-        "C": 100,
+#         C=577.25, gamma=65.023
+'C': 1906.4584194530692, 'gamma': 477.71211608797796, 'epsilon': 0.0020853886390257348, 'kernel': 'rbf'
+# 'C':400.25, 'gamma':25.023
+
+        # "C": 100,
         # "kernel": "linear",
     },
 
     # pls
     "plsr": {
-        "n_components": 30,
+        "n_components": 11,
     },
     "bpnn": {
 

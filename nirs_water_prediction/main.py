@@ -91,6 +91,16 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
 
     # 获取模型的最优参数
     if para.optimal:
+
+        if para.best_opt:
+            X_train = np.concatenate((X_train,X_test),axis=0)
+            y_train = np.concatenate((y_train,y_test),axis=0)
+            a = np.arange(len(y_train))
+            np.random.shuffle(a)
+            X_train = X_train[a]
+            y_train = y_train[a]
+
+
         model,best_params = model.best_para(model_str,X_train,y_train)
 
     start_model = time.perf_counter()
@@ -159,10 +169,10 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     header = ["全名","预处理","特征选择算法", "模型" , 'R2', 'RMSECV', "r2", 'RMSEP', "RPD",'MAE', "CPU时间", "流程时间", "总时间", *params_name]
 
     row = [all_name,"+".join(preprocess_args["method"]).upper(),"+".join(feature_selection_args["method"]).upper(),model_args["model"].upper() ,*indicators,*params]
-    save2excel(row,header)
+
     if  para.paint is not False:
         paint(y_test,y_pred_test,R2,RMSECV,r2,RMSEP,RPD,all_name)
-
+    save2excel(row,header)
     print("\n\n\n")
 
 
@@ -217,14 +227,14 @@ if __name__ == '__main__':
     # preprocess=[ ["baseline_correction"]]
     # preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
     preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
-    preprocess = [['dt']]
+    preprocess = [['sg','dt']]
     preprocess = [['sg']]
     # features = [["pca"], ["cars"], ["spa"]]
     features = [ ["pca"], ["cars","pca"]]
-    features = [["none"] , ["pca"]]
-    features = [["none"]]
-    features = [["pca"]]
-    models = ["svr"]
+    # features = [["none"] , ["cars"]]
+    features = [["lasso"]]
+    # features = [["pca"]]
+    models = ["plsr"]
 
     from urllib.request import getproxies
 
@@ -233,7 +243,10 @@ if __name__ == '__main__':
     # 是否需要开启参数寻优， 参数寻优的范围设置在nirs_models.py中
     para.optimal = True
     para.optimal = False
+    para.best_opt = True
+    para.best_opt = False
     para.paint=True
+    para.paint=False
 
 
 
