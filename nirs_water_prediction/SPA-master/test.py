@@ -8,11 +8,13 @@ y = y_train/100
 import SPA
 
 spa = SPA.SPA()
-# 数据归一化
-from sklearn.preprocessing import MinMaxScaler
-min_max_scaler = MinMaxScaler(feature_range=(0, 1))  # 这里feature_range根据需要自行设置，默认（0,1）
 
-X_ = min_max_scaler.fit_transform(X)
+X_= X
+# 数据归一化
+# from sklearn.preprocessing import MinMaxScaler
+# min_max_scaler = MinMaxScaler(feature_range=(0, 1))  # 这里feature_range根据需要自行设置，默认（0,1）
+#
+# X_ = min_max_scaler.fit_transform(X)
 
 
 # 建模集测试集分割
@@ -23,7 +25,7 @@ from sklearn.model_selection import train_test_split
 Xcal, Xval, ycal, yval = train_test_split(X_, y, test_size=0.4, random_state=3)
 
 var_sel, var_sel_phase2 = spa.spa(
-        Xcal, ycal, m_min=33, m_max=50,Xval=Xval, yval=yval, autoscaling=1)
+        Xcal, ycal, m_min=25, m_max=30,Xval=Xval, yval=yval, autoscaling=1)
 
 
 print(",".join(numpy.array(var_sel,dtype=str)))

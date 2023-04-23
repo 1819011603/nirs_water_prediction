@@ -8,19 +8,19 @@ from sklearn.metrics import mean_squared_error, r2_score
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=5)
+        self.conv1 = nn.Conv1d(1,4, kernel_size=5)
         self.pool1 = nn.MaxPool1d(kernel_size=3)
-        self.conv2 = nn.Conv1d(16, 32, kernel_size=5)
+        self.conv2 = nn.Conv1d(4, 16, kernel_size=5)
         self.pool2 = nn.MaxPool1d(kernel_size=5)
-        self.conv3 = nn.Conv1d(32, 64, kernel_size=16)
+        self.conv3 = nn.Conv1d(16, 32, kernel_size=16)
         # self.pool3 = nn.AvgPool1d(kernel_size=4)
-        self.fc1 = nn.Linear(64, 1)
+        self.fc1 = nn.Linear(32, 1)
 
     def forward(self, x):
         x = self.pool1(torch.relu(self.conv1(x)))
         x = self.pool2(torch.relu(self.conv2(x)))
         x = torch.relu(self.conv3(x))
-        x = x.view(-1, 64)
+        x = x.view(-1, 32)
         x = self.fc1(x)
         return x
 
@@ -30,6 +30,12 @@ criterion = nn.MSELoss()
 
 
 from nirs.parameters import X_train_copy,y_train_copy,X_test,y_test
+
+from nirs.nirs_processing import sg
+
+X_train_copy = sg(X_train_copy)
+X_test = sg(X_test)
+
 # 读入数据并转换为PyTorch Tensor格式
 x =X_train_copy
 y = y_train_copy

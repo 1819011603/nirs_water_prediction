@@ -16,8 +16,8 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     import matplotlib.pyplot as plt
     fig = plt.figure(figsize=(8,8),dpi=150)
     # 构造模拟数据
-    x = y_test*100
-    y = y_pred_test*100
+    x = y_test
+    y = y_pred_test
 
     # 增加一列常数1，以便拟合常数项b0
     X = np.c_[np.ones(x.shape[0]), x]
@@ -26,8 +26,13 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     beta_hat = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)
     beta1, beta0 = np.polyfit(x, y, 1)
 
+    m1,m2 =np.min(x),np.max(x)
+    ma1,ma2 =np.min(y),np.max(y)
 
-    X_ = np.linspace(0, 80, 1000)
+    # mi = 0
+    # max = 80
+
+    X_ = np.linspace(m1, m2, 1000)
     Y_ = beta1*X_+beta0
 
     # 绘制数据散点图和回归直线
@@ -38,8 +43,8 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     plt.scatter([0], [0],color="none",edgecolors="none",label=f"RPD={RPD:.4f}")
     plt.plot(X_, Y_, 'r', label='y=%.4fx+%.4f' % (beta1, beta0))
 
-    plt.xlim(0,80)
-    plt.ylim(0,80)
+    plt.xlim(m1,m2)
+    plt.ylim(ma1,ma2)
 
     plt.xlabel('Measure value/%')
     plt.ylabel('Predictive value/%')
@@ -81,28 +86,29 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     feature_selection_args["method"] = index
 
     # cross validation
-    cv = KFold(n_splits=10, shuffle=True, random_state=3)
+    cv = KFold(n_splits=5, shuffle=True, random_state=3)
 
     model_str = model_args["model"].lower()
 
     best_params = model_args.get(model_str)
     # 模型
-    model = Model(method=model_str,**model_args.get(model_str))
+    model = Model(method=model_str,**model_args.get(model_str,{}))
 
     # 获取模型的最优参数
-    if para.optimal:
+    if para is not  None and para.optimal:
 
-        if para.best_opt:
-            X_train = np.concatenate((X_train,X_test),axis=0)
-            y_train = np.concatenate((y_train,y_test),axis=0)
-            a = np.arange(len(y_train))
-            np.random.shuffle(a)
-            X_train = X_train[a]
-            y_train = y_train[a]
 
 
         model,best_params = model.best_para(model_str,X_train,y_train)
-
+    if  para is not  None and  para.best_opt:
+        a = -12
+        b = -5
+        X_train = np.concatenate((X_train,X_test[a:b]),axis=0)
+        y_train = np.concatenate((y_train,y_test[a:b]),axis=0)
+        a = np.arange(len(y_train))
+        np.random.shuffle(a)
+        X_train = X_train[a]
+        y_train = y_train[a]
     start_model = time.perf_counter()
 
     # 交叉验证
@@ -116,8 +122,8 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     y_pred_test = model.predict(X_test)
 
     # 对输出进行后置预处理
-    y_test = y_test / 100
-    y_pred_test = y_pred_test / 100
+    y_test = y_test
+    y_pred_test = y_pred_test
 
 
     # 计算预测的R2和RMSEP
@@ -134,7 +140,7 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
 
     # 评价指标
     R2 = r2.mean()
-    RMSECV = rmse.mean()/100
+    RMSECV = rmse.mean()
     r2 = r2_test
     RMSEP= rmsep
     RPD = np.std(y_test)/RMSEP
@@ -157,12 +163,18 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
 
     # 指标列表
     indicators = [ R2, RMSECV, r2, RMSEP,RPD, MAE, model_time, total_time, t_time]
+
+    if para.__getattribute__("train_n") is not None:
+        indicators.insert(0, np.sqrt(0 if r2 < 0 else r2))
+        indicators.insert(0, np.sqrt(0 if R2 < 0 else R2))
+        para.train_n.append(indicators)
+
     indicators = [f"{x:.4f}" for x in indicators]
 
 
 
     params_name = ["预处理参数","特征选择参数", "模型参数" ,"真实值" , "预测值"]
-    params = [preprocess_args, feature_selection_args_list, ', '.join([f'{str(k)[:6]}={str(v)[:6]}' for k,v in best_params.items()]), y_test, y_pred_test]
+    params = [preprocess_args, feature_selection_args_list, ', '.join([f'{str(k)[:6]}={str(v)[:6]}' for k,v in best_params.items()]) if best_params is not None else '{}', y_test, y_pred_test]
     params = [str(x) for x in params]
 
 
@@ -172,9 +184,32 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
 
     if  para.paint is not False:
         paint(y_test,y_pred_test,R2,RMSECV,r2,RMSEP,RPD,all_name)
+
     save2excel(row,header)
     print("\n\n\n")
+para.train_n = []
 
+def train_n_times(features_sel,preprocess='none', features='none', models ='plsr'):
+    # preprocess = [['sg','dt']]
+    # preprocess = [['sg']]
+    preprocess = [[preprocess]]
+    # preprocess = [['piecewise_polyfit_baseline_correction']]
+    # features = [["pca"], ["cars"], ["spa"]]
+    # features = [ ["pca"], ["cars","pca"]]
+    # features = [["none"] , ["cars"]]
+
+    my = features
+
+    features = [[my]]
+    from nirs.parameters import feature_selection_args
+    feature_selection_args[my] = {'index': features_sel}
+    feature_selection_args["index_set"].append(my)
+
+    # features = [["new"]]
+    models = [models]
+
+
+    f(preprocess, features, models)
 
 def f(preprocess,features,models):
 
@@ -204,7 +239,12 @@ def f(preprocess,features,models):
                     i+=1
                     raise str(e)
     print(f"出错次数 : {i}")
-
+para.optimal = True
+para.optimal = False
+para.best_opt = True
+para.best_opt = False
+para.paint=False
+para.paint=True
 if __name__ == '__main__':
 
 
@@ -226,19 +266,20 @@ if __name__ == '__main__':
     # 模型参数修改在parameters.py中
     # preprocess=[ ["baseline_correction"]]
     # preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
-    preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
-    preprocess = [['sg','dt']]
-    preprocess = [['sg']]
-    # features = [["pca"], ["cars"], ["spa"]]
-    features = [ ["pca"], ["cars","pca"]]
+    preprocess = [["none"],["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
+    # preprocess = [['sg','dt']]
+    # preprocess = [['sg']]
+    # preprocess = [['none']]
+    # preprocess = [['piecewise_polyfit_baseline_correction']]
+    features = [["pca"], ["cars"], ["spa"]]
+    # features = [ ["pca"], ["cars","pca"]]
     # features = [["none"] , ["cars"]]
-    features = [["lasso"]]
-    # features = [["pca"]]
-    models = ["plsr"]
+    # features = [['mp5spec_moisture']]
+    features = [["none"]]
+    models = ['adaboost']
 
     from urllib.request import getproxies
 
-    啊= getproxies()
 
     # 是否需要开启参数寻优， 参数寻优的范围设置在nirs_models.py中
     para.optimal = True
@@ -247,6 +288,9 @@ if __name__ == '__main__':
     para.best_opt = False
     para.paint=True
     para.paint=False
+
+
+
 
 
 

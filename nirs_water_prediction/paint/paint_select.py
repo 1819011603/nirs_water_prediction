@@ -23,10 +23,14 @@ def line_chart( ypoints,scatter=None, humidity=None):
     # plt.plot(self.xpoints, ypoints, ls='solid', lw=2,label=str(humidity))
 
     from nirs.parameters import xpoints
+    if len(xpoints) < max(scatter):
+        xpoints = np.arange(1,len(ypoints)+1)
     xpoints1 = np.array(xpoints,copy=True)
     xpoints2 = np.array(xpoints,copy=True,dtype=str)
     print(len(scatter))
     print("、".join(xpoints2[scatter]) + " nm。")
+    print(",".join(xpoints2[scatter]) )
+    print(",".join( np.array(scatter,copy=True,dtype=str)) )
     if(len(ypoints) == len(xpoints)):
         sep = 15
 
@@ -58,26 +62,25 @@ def line_chart( ypoints,scatter=None, humidity=None):
         plt.legend()
     plt.xlabel('Wavelengths(nm)')
     plt.ylabel("Absorbance")
-if __name__ == '__main__':
+
+def paint(a):
     from nirs.parameters import X_train, X_test, X_train_copy
 
-    total = np.concatenate((X_train_copy, X_test), axis=0)
+    # total = np.concatenate((X_train_copy, X_test), axis=0)
 
-    total = np.mean(total,axis=0)
+    total = np.mean(X_train, axis=0)
 
-    a =[2, 4, 7, 9, 12, 13, 21, 29, 39, 40, 42, 44, 47, 48, 54, 58, 60, 64, 72, 79, 82, 84, 86, 89, 101, 125, 128, 143, 156, 157, 175, 176, 180, 181, 199, 200, 201, 204]
+
     # a =  [3,5,8,14,26,31,41,43,48,49,53,59,65,72,80,81,85,87,90,110,111,116,120,122,126,127,128,153,158,175,180,184,197,198,202,205,206,214,227,240,241,255]
     print(len(a))
     index = np.array(a)
 
     plt.figure(figsize=(8, 6), dpi=100)
-    plt.xlim(920, 1620)
+    # plt.xlim(920, 1620)
 
-    line_chart(total,scatter=index,humidity="Average spectrum")
+    line_chart(total, scatter=index, humidity="Average spectrum")
 
     from nirs.parameters import xpoints
-
-
 
     suff = 'pdf'
     picture_name = "select"
@@ -85,12 +88,16 @@ if __name__ == '__main__':
     picture_path = get_log_name(picture_name, suff=suff, dir_path=dir_path)
     plt.tight_layout()
     print("save in {}".format(picture_path))
-    plt.savefig(picture_path,format='pdf')
-
+    plt.savefig(picture_path, format='pdf')
 
     plt.show()
 
 
+if __name__ == '__main__':
+    a = [2, 4, 7, 9, 12, 13, 21, 29, 39, 40, 42, 44, 47, 48, 54, 58, 60, 64, 72, 79, 82, 84, 86, 89, 101, 125, 128, 143,
+         156, 157, 175, 176, 180, 181, 199, 200, 201, 204]
+    a = [1,6,28,55,57,113,126,165,167,169,177,180,181,229,233]
+    paint(a)
 
 
 

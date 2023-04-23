@@ -58,8 +58,8 @@ def getRR_RMSE_RPD(y_test,y_pred_test):
     RPD = np.std(y_test) / rmsep
     return r2_test,rmsep,RPD
 
-def save2excel(row, header, path='tmp.xlsx'):
-    if para.path != None:
+def save2excel(row, header, path=None):
+    if path is None and para.path is not None:
         path = para.path
 
     path = "./result/" + path
@@ -89,6 +89,12 @@ def save2excel(row, header, path='tmp.xlsx'):
             print(f"save in {path}")
         except Exception as e:
             if time1 == 1:
+                d = path.rfind('.')
+                a , b =path[:d],path[d:]
+
+
+
+                save2excel(row,header,a + "1" + b)
                 raise str(e)
             else:
                 print(f"{path} 第{total-time1+1}保存失败, 1s后重试 ")

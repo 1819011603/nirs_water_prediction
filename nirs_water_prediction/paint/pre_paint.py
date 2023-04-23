@@ -30,6 +30,19 @@ def line_chart( ypoints, humidity=None):
 
     from nirs.parameters import xpoints
 
+    if(len(xpoints) != len(ypoints)):
+        xpoints = np.arange(len(ypoints))
+
+    x = xpoints
+    y = ypoints
+    m1, m2 = np.min(x), np.max(x)
+    ma1, ma2 = np.min(y), np.max(y)
+    plt.xlim(m1, m2)
+    plt.ylim(ma1, ma2)
+
+
+    plt.xlim(m1,m2)
+    plt.ylim(ma1,ma2)
     if(len(ypoints) == len(xpoints)):
         sep = 15
 
@@ -73,8 +86,8 @@ def paint(X,pre):
     picture_path = get_log_name(picture_name, suff=suff, dir_path=dir_path)
     # plt.tight_layout()
     print("save in {}".format(picture_path))
-    plt.savefig(picture_path,format='pdf')
-    # plt.show()
+    # plt.savefig(picture_path,format='pdf')
+    plt.show()
 
 if __name__ == '__main__':
     from nirs.parameters import X_train, X_test, preprocess_args
@@ -86,7 +99,7 @@ if __name__ == '__main__':
     # 多元散射校正（MSC）、标准正态变换(SNV)、离散小波变换(DWT)、一阶导数、正交信号校正(orthogonal signal correction， OSC)、Savitzky-Golay(S-G)平滑滤波和去趋势(Detrend)
     preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"],['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
     # preprocess = [ ["piecewise_polyfit_baseline_correction"]]
-    preprocess = [["none"]]
+    # preprocess = [["none"]]
     for p in preprocess:
         preprocess_args["method"] = p
 

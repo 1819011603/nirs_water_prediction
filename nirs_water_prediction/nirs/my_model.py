@@ -1,6 +1,192 @@
+from imblearn.over_sampling import SMOTE
 from scipy.spatial.distance import cdist
 import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
+
+import numpy as np
+from sklearn.preprocessing import normalize
+import numpy as np
+
+
+class ELMRegressor(BaseEstimator,RegressorMixin):
+    def __init__(self, n_hidden, C=1):
+        self.n_hidden = n_hidden
+        self.C = C
+        self.beta = None
+
+    def relu(self, X):
+        return np.maximum(X, 0)
+
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+        self.random_weights = np.random.normal(size=[n_features, self.n_hidden])
+        H = self.relu(X.dot(self.random_weights))
+        self.beta = np.linalg.inv(H.T.dot(H) + np.eye(self.n_hidden) / self.C).dot(H.T).dot(y)
+
+    def predict(self, X):
+        H = self.relu(X.dot(self.random_weights))
+        y_pred = H.dot(self.beta)
+        return y_pred.flatten()
+
+
+import numpy as np
+
+import numpy as np
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+
+
+class BPNN(nn.Module,RegressorMixin,BaseEstimator):
+    def __init__(self, hidden_size,learning_rate=0.01,num_epochs=10000):
+        super(BPNN, self).__init__()
+
+        self.hidden_size = hidden_size
+        self. num_epochs = num_epochs
+        self.learning_rate = learning_rate
+        self.hidden_layer = None
+        self.output_layer = None
+        self.activation=None
+    def forward(self, x):
+
+        x = self.activation(self.hidden_layer(x))
+        x = self.output_layer(x)
+        return x
+
+    def fit(self, X, y):
+        _, input_size = X.shape
+        self.hidden_layer = nn.Linear(input_size, self.hidden_size)
+        self.output_layer = nn.Linear(self.hidden_size, 1)
+        self.activation = nn.Tanh()
+
+        X = torch.tensor(X,dtype=torch.float)
+        y = torch.tensor(y,dtype=torch.float)
+        criterion = nn.MSELoss()
+        optimizer = optim.Adam(self.parameters(), lr=self.learning_rate,betas=(0.999,0.937))
+        # optimizer = optim.SGD(self.parameters(), lr=self.learning_rate)
+
+        for i in range(self.num_epochs):
+            y_predict = self.forward(X)
+            loss = criterion(y_predict, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+    def predict(self, X):
+        X = torch.tensor(X, dtype=torch.float)
+        with torch.no_grad():
+            outputs = self.forward(X)
+            return outputs.numpy()
+
+
+class DeepELM(RegressorMixin,BaseEstimator):
+    def __init__(self, hidden_sizes, alpha=0.1, regularization=None, lambda_val=None):
+
+        self.hidden_sizes = hidden_sizes
+
+        self.alpha = alpha
+        self.regularization = regularization
+        self.lambda_val = lambda_val
+        self.weights = []
+        self.biases = []
+        self.beta = None
+        self.sample = None
+
+    def init_weights(self):
+        self.weights.append(np.random.normal(size=(self.input_size, self.hidden_sizes[0])))
+        self.biases.append(np.random.normal(size=self.hidden_sizes[0]))
+        for i in range(1, len(self.hidden_sizes)):
+            self.weights.append(np.random.normal(size=(self.hidden_sizes[i-1], self.hidden_sizes[i])))
+            self.biases.append(np.random.normal(size=self.hidden_sizes[i]))
+        self.weights.append(np.random.normal(size=(self.hidden_sizes[-1], self.output_size)))
+        self.biases.append(np.random.normal(size=self.output_size))
+
+    def relu(self, x):
+        return np.maximum(0, x)
+
+    def fit(self, X, y):
+
+        self.sample= X.shape[0]
+
+        self.input_size=X.shape[1]
+        self.output_size=1
+        self.init_weights()
+
+        self.hidden_layers = []
+        X_train = X.copy()
+        for i in range(len(self.weights)):
+            layer_input = np.dot(X_train, self.weights[i]) + self.biases[i]
+            X_train = self.relu(layer_input)
+            self.hidden_layers.append(X_train)
+        if self.regularization is not None:
+            if self.regularization == 'l1':
+                reg = np.sum([np.sum(i) for i in np.abs(self.weights)])
+            elif self.regularization == 'l2':
+                reg = np.sum([np.sum(i) for i in np.square(self.weights)])
+            else:
+                raise ValueError('Invalid regularization parameter')
+            reg *= self.lambda_val
+        else:
+            reg = 0
+        H = np.hstack(self.hidden_layers)
+        self.beta = np.linalg.pinv(np.dot(H.T, H) + reg)
+        self.beta = np.dot(self.beta, np.dot(H.T, y))
+
+    def smote_upsample(self,X, y, target_samples):
+        """使用 SMOTE 算法进行上采样，并将样本数量增加到目标数"""
+        smote = SMOTE(sampling_strategy='auto', k_neighbors=5, random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(X, y)
+        n_samples = X_resampled.shape[0]
+
+        if n_samples > target_samples:
+            # 如果生成的样本数量已经超过了目标样本数，随机选择部分样本
+            idx = np.random.choice(n_samples, size=target_samples, replace=False)
+            X_resampled = X_resampled[idx, :]
+            y_resampled = y_resampled[idx]
+
+        return X_resampled, y_resampled
+    def predict(self, X,y = None):
+        if self.sample != None:
+            # X,y=self.smote_upsample(X,y,self.sample)
+            self.sample = None
+        X_test = X.copy()
+        for i in range(len(self.weights)):
+            layer_input = np.dot(X_test, self.weights[i]) + self.biases[i]
+            X_test = self.relu(layer_input)
+        H = np.hstack(self.hidden_layers)
+        y_pred = np.dot(H, self.beta)
+
+
+        return y_pred.ravel()
+
+class R_ELM(BaseEstimator,RegressorMixin):
+    def __init__(self,  n_hidden, reg=1e-6):
+
+        self.n_hidden = n_hidden
+
+        self.reg = reg
+
+        self.bias = np.random.randn(n_hidden)
+        self.beta = None
+
+    def relu(self, x):
+        return np.maximum(x, 0)
+
+    def fit(self, X, Y):
+        n_samples, n_features = X.shape
+        self.n_input = n_features
+        self.n_output=1
+        self.weights = np.random.randn(self.n_input, self.n_hidden)
+        H = self.relu(np.dot(X, self.weights) + self.bias)
+        H_t = np.transpose(H)
+        self.beta = np.dot(np.linalg.inv(np.dot(H_t, H) + self.reg * np.identity(self.n_hidden)), np.dot(H_t, Y))
+
+    def predict(self, X):
+        H = self.relu(np.dot(X, self.weights) + self.bias)
+        Y_pred = np.dot(H, self.beta)
+        return Y_pred
 
 
 class LSSVM(BaseEstimator,RegressorMixin):
@@ -34,3 +220,13 @@ class LSSVM(BaseEstimator,RegressorMixin):
             return np.dot(X1, X2.T)
         elif self.kernel == 'poly':
             return (self.gamma * np.dot(X1, X2.T) + 1) ** self.sigma
+
+if __name__ == '__main__':
+    from nirs.parameters import *
+    from nirs.nirs_processing import sg,dt
+    bpnn=BPNN(50,0.001)
+    X_train = dt(sg(X_train))
+    y_train = y_train/100
+    bpnn.fit(X_train,y_train)
+    print(bpnn.predict(X_train))
+

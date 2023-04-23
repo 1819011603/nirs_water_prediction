@@ -2,6 +2,167 @@ import pathlib
 import numpy as np
 from numpy import mat, zeros
 
+from nirs.nirs_processing import piecewise_polyfit_baseline_correction
+
+def kennardstonealgorithm(x_variables, k_rate):
+    k = int(len(x_variables) * k_rate)
+    x_variables = np.array(x_variables)
+    original_x = x_variables
+    distance_to_average = ((x_variables - np.tile(x_variables.mean(axis=0), (x_variables.shape[0], 1))) ** 2).sum(
+        axis=1)
+    max_distance_sample_number = np.where(distance_to_average == np.max(distance_to_average))
+    max_distance_sample_number = max_distance_sample_number[0][0]
+    selected_sample_numbers = list()
+    selected_sample_numbers.append(max_distance_sample_number)
+    remaining_sample_numbers = np.arange(0, x_variables.shape[0], 1)
+    x_variables = np.delete(x_variables, selected_sample_numbers, 0)
+    remaining_sample_numbers = np.delete(remaining_sample_numbers, selected_sample_numbers, 0)
+    for iteration in range(1, k):
+        selected_samples = original_x[selected_sample_numbers, :]
+        min_distance_to_selected_samples = list()
+        for min_distance_calculation_number in range(0, x_variables.shape[0]):
+            distance_to_selected_samples = ((selected_samples - np.tile(x_variables[min_distance_calculation_number, :],
+                                                                        (selected_samples.shape[0], 1))) ** 2).sum(
+                axis=1)
+            min_distance_to_selected_samples.append(np.min(distance_to_selected_samples))
+        max_distance_sample_number = np.where(
+            min_distance_to_selected_samples == np.max(min_distance_to_selected_samples))
+        max_distance_sample_number = max_distance_sample_number[0][0]
+        selected_sample_numbers.append(remaining_sample_numbers[max_distance_sample_number])
+        x_variables = np.delete(x_variables, max_distance_sample_number, 0)
+        remaining_sample_numbers = np.delete(remaining_sample_numbers, max_distance_sample_number, 0)
+
+    return selected_sample_numbers, remaining_sample_numbers
+
+import numpy as np
+
+def spxy(X, y, test_size=0.2):
+    M = X.shape[0]  # Number of objects
+    Ncal = round((1 - test_size) * M)
+
+    dminmax = np.zeros(Ncal)  # Initializes the vector of minimum distances.
+    samples = np.arange(M)
+    Dx = np.zeros((M, M))  # Inicializes the matrix of X-distances.
+    Dy = np.zeros((M, M))  # Inicializes the matriz de y-distances.
+    for i in range(M-1):
+        xa = X[i, :]
+        ya = y[i]
+        for j in range(i + 1, M):
+            xb = X[j, :]
+            yb = y[j]
+            Dx[i, j] = np.linalg.norm(xa - xb)
+            Dy[i, j] = np.linalg.norm(ya - yb)
+    Dxmax = np.max(np.max(Dx))
+    Dymax = np.max(np.max(Dy))
+    D = Dx / Dxmax + Dy / Dymax  # Combines the X and y distances.
+    # D is an upper triangular matrix.
+    # D[i,j] is the distance between objects i and j (j > i).
+    maxD = np.max(D, axis=0)
+    index_row = np.argmax(D, axis=0)
+    # maxD is a row vector containing the largest element for each column of D.
+    # index_row is the row in which the largest element of the column if found.
+    index_column = np.argmax(maxD)
+    # index_column is the column containing the largest element of matrix D.
+    m = np.zeros(Ncal, dtype=int)
+    m[0] = index_row[index_column]
+    m[1] = index_column
+    for i in range(2, Ncal):
+        pool = np.setdiff1d(samples, m[:i])
+        # Pool is the index set of the samples that have not been selected yet.
+        dmin = np.zeros(M - i)
+        # dmin will store the minimum distance of each sample in “pool” with respect to the previously selected samples.
+        for j in range(M - i):
+            indexa = pool[j]
+            d = np.zeros(i )
+            for k in range(i ):
+                indexb = m[k]
+                if indexa < indexb:
+                    d[k] = D[indexa, indexb]
+                else:
+                    d[k] = D[indexb, indexa]
+            dmin[j] = np.min(d)
+        # At each iteration, the sample with the largest dmin value is selected.
+        index = np.argmax(dmin)
+        m[i] = pool[index]
+
+    a = np.delete(np.arange(M), m)
+    spec_train = X[m, :]
+    target_train = y[m]
+    spec_test = X[a, :]
+    target_test = y[a]
+
+    return spec_train, spec_test, target_train, target_test
+
+
+def spxy1(x, y, test_size=0.2):
+    x_backup = x
+    y_backup = y
+    M = x.shape[0]
+    N = round((1 - test_size) * M)
+    samples = np.arange(M)
+
+    y = (y - np.mean(y)) / np.std(y)
+    D = np.zeros((M, M))
+    Dy = np.zeros((M, M))
+
+    for i in range(M - 1):
+        xa = x[i, :]
+        ya = y[i]
+        for j in range((i + 1), M):
+            xb = x[j, :]
+            yb = y[j]
+            D[i, j] = np.linalg.norm(xa - xb)
+            Dy[i, j] = np.linalg.norm(ya - yb)
+
+    Dmax = np.max(D)
+    Dymax = np.max(Dy)
+    D = D / Dmax + Dy / Dymax
+
+    maxD = D.max(axis=0)
+    index_row = D.argmax(axis=0)  # 返回axis轴方向最大值的索引
+    index_column = maxD.argmax()
+
+    m = np.zeros(N)
+    m[0] = index_row[index_column]
+    m[1] = index_column
+    m = m.astype(int)
+
+    dminmax = np.zeros(N)
+    dminmax[1] = D[m[0], m[1]]
+
+    for i in range(2, N):
+        pool = np.delete(samples, m[:i])
+        dmin = np.zeros(M - i)
+        for j in range(M - i):
+            # pool是还未被选进去的  和选中的距离
+            indexa = pool[j]
+            d = np.zeros(i)
+            for k in range(i):
+                indexb = m[k]
+
+                # 半角矩阵
+
+                if indexa < indexb:
+                    d[k] = D[indexa, indexb]
+                else:
+                    d[k] = D[indexb, indexa]
+            #dmin 未选取的样本  到选取样本的最小距离
+            dmin[j] = np.min(d)
+        # 最小距离的最大值
+        dminmax[i] = np.max(dmin)
+        index = np.argmax(dmin)
+        m[i] = pool[index]
+
+    m_complement = np.delete(np.arange(x.shape[0]), m)
+
+    spec_train = x[m, :]
+    target_train = y_backup[m]
+    spec_test = x[m_complement, :]
+    target_test = y_backup[m_complement]
+
+    return spec_train, spec_test, target_train, target_test
+
+
 
 def loadDataSet01(filename, Separator=', '):
     import pathlib
@@ -79,7 +240,7 @@ feature_selection_args = {
     "method": ["cars", "pca"],
     "pca": {
         # 主成分个数
-        "n_components": 30,
+        "n_components": 56,
     },
     "plsr": {
         "n_components": 11,
@@ -101,9 +262,20 @@ feature_selection_args = {
         'normalize': False
 
     },
-
+    'new':{
+        # 'index':[252,13,182,46,6,134,159,184,165,199,2,171,167,179,175,203,176,169,1,170]
+        'index':[1,6,28,55,57,113,126,165,167,169,177,180,181,229,233]
+    },
+    'yumi':{
+      # 'index':[47,52,54,67,182,208,214,217,236,239,260,293,310,319,331,355,361,378,388,396,403,408,455,473,495,512,540,562,575,586,601,602,604,616,692,699]
+      # 'index':[60,157,165,174,194,208,210,235,252,259,281,289,294,334,344,358,362,369,382,408,413,434,437,439,452,454,470,487,494,505,510,526,541,543,544,551,560,573,593,604,619,641,649,651,659,667,680,695,698,699]
+      'index':[8,9,36,49,74,75,96,116,124,134,144,145,160,198,220,274,276,277,295,307,308,325,329,341,344,381,399,431,480,492,512,515,527,536,547,548,560,568,576,585,609,619,621,625,644,654,665,666,672,677]    },
     # 使用index的特征提取方法
-    "index_set": ["cars", "ga","spa"],
+    "mp5spec_moisture":{
+        'index':[156, 221 ,500, 610]
+    }
+    ,
+    "index_set": ["cars", "ga","spa",'new',"yumi",'mp5spec_moisture'],
 
 }
 
@@ -152,11 +324,22 @@ model_args = {
 # 'C':128, 'gamma':16,  'epsilon':0.297, 'kernel': 'rbf'
 
 #         C=577.25, gamma=65.023
-'C': 1906.4584194530692, 'gamma': 477.71211608797796, 'epsilon': 0.0020853886390257348, 'kernel': 'rbf'
+# 'C': 1906.4584194530692, 'gamma': 477.71211608797796, 'epsilon': 0.0020853886390257348, 'kernel': 'rbf'
 # 'C':400.25, 'gamma':25.023
+#         'kernel':'linear'
 
         # "C": 100,
         # "kernel": "linear",
+    },
+    'rf':{
+'n_estimators':38, 'max_depth':12,  'min_samples_split': 2, 'min_samples_leaf': 2,'max_features':5
+
+    #     criterion = "mse", min_samples_split = 2, min_samples_leaf = 2, max_depth = 12, max_features = min(5, len(
+    # x_train[0])), bootstrap = False
+    },
+
+    'adaboost':{
+
     },
 
     # pls
@@ -165,14 +348,14 @@ model_args = {
     },
     "bpnn": {
 
-        "hidden_layer_sizes": (32,8),
-        "activation": 'logistic',
-        "solver": 'sgd',
+        "hidden_size": 100,
+        # "activation": 'logistic',
+        # "solver": 'sgd',
         # "alpha": 0.0001,
-        "learning_rate": 'constant',
-        "learning_rate_init": 0.01,
+        "learning_rate": 0.01,
+        # "learning_rate_init": 0.01,
         # "power_t": 0.5,
-        "max_iter": 20000,
+        "num_epochs": 10000,
         # "shuffle": False,
         # "tol": 0.0001,
         # "verbose": False,
@@ -199,35 +382,71 @@ from sklearn.metrics import pairwise_distances
 from sklearn.cluster import KMeans
 
 
-def kennardstonealgorithm(x_variables, k_rate):
-    k = int(len(x_variables) * k_rate)
-    x_variables = np.array(x_variables)
-    original_x = x_variables
-    distance_to_average = ((x_variables - np.tile(x_variables.mean(axis=0), (x_variables.shape[0], 1))) ** 2).sum(
-        axis=1)
-    max_distance_sample_number = np.where(distance_to_average == np.max(distance_to_average))
-    max_distance_sample_number = max_distance_sample_number[0][0]
-    selected_sample_numbers = list()
-    selected_sample_numbers.append(max_distance_sample_number)
-    remaining_sample_numbers = np.arange(0, x_variables.shape[0], 1)
-    x_variables = np.delete(x_variables, selected_sample_numbers, 0)
-    remaining_sample_numbers = np.delete(remaining_sample_numbers, selected_sample_numbers, 0)
-    for iteration in range(1, k):
-        selected_samples = original_x[selected_sample_numbers, :]
-        min_distance_to_selected_samples = list()
-        for min_distance_calculation_number in range(0, x_variables.shape[0]):
-            distance_to_selected_samples = ((selected_samples - np.tile(x_variables[min_distance_calculation_number, :],
-                                                                        (selected_samples.shape[0], 1))) ** 2).sum(
-                axis=1)
-            min_distance_to_selected_samples.append(np.min(distance_to_selected_samples))
-        max_distance_sample_number = np.where(
-            min_distance_to_selected_samples == np.max(min_distance_to_selected_samples))
-        max_distance_sample_number = max_distance_sample_number[0][0]
-        selected_sample_numbers.append(remaining_sample_numbers[max_distance_sample_number])
-        x_variables = np.delete(x_variables, max_distance_sample_number, 0)
-        remaining_sample_numbers = np.delete(remaining_sample_numbers, max_distance_sample_number, 0)
 
-    return selected_sample_numbers, remaining_sample_numbers
+
+#model: SG_NONE_LINEAR  DT_NONE_LINEAR
+# R2: 0.9994
+# RMSECV: 0.0001
+# r2: 0.9996
+# RMSEP: 0.0000
+# RPD: 50.8678
+
+# MAE: 0.0000
+
+import pathlib
+
+dir = pathlib.Path("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/")
+
+data={}
+for i in dir.glob("*.txt"):
+
+    abs = str(i.absolute())
+    name = i.name[:i.name.rfind(".")]
+
+    x,y = loadDataSet01(abs,",")
+    data[name] = spxy1(x,y,test_size=0.3)
+
+
+
+
+# m5spec_moisture, m5spec_moisture_y = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/m5spec_moisture.txt".replace("/","\\"),Separator=",")
+
+
+
+# m5spec_moisture, m5spec_moisture_y = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/mp5spec_moisture.txt".replace("/","\\"),Separator=",")
+# m5spec_moisture, m5spec_moisture_y = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/mp6spec_moisture.txt".replace("/","\\"),Separator=",")
+
+
+
+# m5spec_moisture, m5spec_moisture_y = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/mp5spec_oil.txt".replace("/","\\"),Separator=",")
+
+# selected_sample_numbers, remaining_sample_numbers = kennardstonealgorithm(m5spec_moisture, 0.8)
+# m5spec_moisture_train, m5spec_moisture_test = m5spec_moisture[selected_sample_numbers], m5spec_moisture[
+#     remaining_sample_numbers]
+# m5spec_moisture_y_train, m5spec_moisture_y_test = m5spec_moisture_y[selected_sample_numbers], m5spec_moisture_y[
+#     remaining_sample_numbers]
+
+
+# m5spec_moisture_train, m5spec_moisture_test, m5spec_moisture_y_train, m5spec_moisture_y_test= spxy1(m5spec_moisture,m5spec_moisture_y)
+
+
+def print_min_max(a:np.array):
+    print(f"{np.min(a)} --- {np.max(a)}")
+
+data_indice = ['m5spec_moisture','m5spec_oil','m5spec_protein','m5spec_starch',
+               'mp5spec_moisture','mp5spec_oil','mp5spec_protein','mp5spec_starch','mp6spec_moisture','mp6spec_oil',
+               'mp6spec_protein','mp6spec_starch']
+
+indice = 5
+X_train,X_test,y_train,y_test =data.get(data_indice[indice])
+# X_train = piecewise_polyfit_baseline_correction(X_train)
+# X_test = piecewise_polyfit_baseline_correction(X_test)
+# print_min_max(X_train)
+# print_min_max(X_test)
+
+para.path=data_indice[indice] + ".xlsx"
+
+
 
 
 X_test, y_test = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/test.txt".replace("/","\\"))
@@ -238,14 +457,6 @@ X_test = np.log10(1/X_test)
 
 X_train_copy, y_train_copy = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/train_copy.txt".replace("/","\\"))
 X_train_copy = np.log10(1/X_train_copy)
-m5spec_moisture, m5spec_moisture_y = loadDataSet01("C:/Users/Administrator/PycharmProjects/nirs_water_prediction/data/corn/m5spec_oil.txt".replace("/","\\"),Separator=",")
 
-selected_sample_numbers, remaining_sample_numbers = kennardstonealgorithm(m5spec_moisture, 0.8)
-m5spec_moisture_train, m5spec_moisture_test = m5spec_moisture[selected_sample_numbers], m5spec_moisture[
-    remaining_sample_numbers]
-m5spec_moisture_y_train, m5spec_moisture_y_test = m5spec_moisture_y[selected_sample_numbers], m5spec_moisture_y[
-    remaining_sample_numbers]
-
-
-# X_train,X_test=m5spec_moisture_train, m5spec_moisture_test
-# y_train,y_test=m5spec_moisture_y_train, m5spec_moisture_y_test
+print_min_max(y_train)
+print_min_max(y_test)
