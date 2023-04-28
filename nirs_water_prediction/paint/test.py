@@ -8,6 +8,7 @@ plt.rcParams['font.sans-serif'] = 'SimHei'
 plt.rcParams['axes.unicode_minus'] = False
 # 解决负号无法显示的问题
 plt.rcParams['axes.unicode_minus'] =False
+plt.rcParams['font.size'] = 25
 # 定义函数
 def func(a):
     return -np.log10(1 + a - np.sqrt(a**2 + 2*a))
@@ -17,7 +18,7 @@ x = np.linspace(0, 1, 1000)
 
 # 计算y轴的值
 y = func(x)
-
+fig = plt.figure(figsize=(9,8))
 # 绘制曲线图
 plt.plot(x, y,color ="black")
 
@@ -44,8 +45,9 @@ plt.plot(x,y1,color="black")
 
 # 添加标题和坐标轴标签
 plt.xlim(0.0,1)
-plt.xlabel("k/s")
-plt.ylabel("吸收度A")
+plt.xlabel("$k/s$")
+plt.ylabel("吸收度$A$")
 
 # 显示图形
+plt.savefig("KS.pdf")
 plt.show()

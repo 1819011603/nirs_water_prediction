@@ -9,8 +9,8 @@ from nirs.nirs_models import Model
 from nirs.nirs_processing import Preprocess
 from utils import *
 import numpy as np
-import  nirs.util_paint
-
+from  nirs.util_paint import  *
+plt.rcParams['font.size'] = 17
 def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     import numpy as np
     import matplotlib.pyplot as plt
@@ -26,8 +26,17 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     beta_hat = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y)
     beta1, beta0 = np.polyfit(x, y, 1)
 
+
     m1,m2 =np.min(x),np.max(x)
+
+    t = (m2-m1)/15
+    m1-=t
+    m2+=t
+
     ma1,ma2 =np.min(y),np.max(y)
+    u = (ma2-ma1)/15
+    ma1-=u
+    ma2+=u
 
     # mi = 0
     # max = 80
@@ -41,8 +50,10 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     plt.scatter(x, y,s = 50,color="none",edgecolors="black",label= "$R^2_{P}$=" + f"{r2:.4f}, RMSEP={RMSEP:.4f}")
     plt.scatter([0], [0],color="none",edgecolors="none",label="$R^2_{CV}$=" + f"{R2:.4f}, RMSECV={RMSECV:.4f}")
     plt.scatter([0], [0],color="none",edgecolors="none",label=f"RPD={RPD:.4f}")
-    plt.plot(X_, Y_, 'r', label='y=%.4fx+%.4f' % (beta1, beta0))
-
+    if beta0 >= 0:
+        plt.plot(X_, Y_, 'r', label='y=%.4fx+%.4f' % (beta1, beta0))
+    else:
+        plt.plot(X_, Y_, 'r', label='y=%.4fx%.4f' % (beta1, beta0))
     plt.xlim(m1,m2)
     plt.ylim(ma1,ma2)
 
@@ -86,7 +97,7 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     feature_selection_args["method"] = index
 
     # cross validation
-    cv = KFold(n_splits=5, shuffle=True, random_state=3)
+    cv = KFold(n_splits=10, shuffle=True, random_state=3)
 
     model_str = model_args["model"].lower()
 
@@ -162,7 +173,7 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     print(f"t_time: {t_time:.4f}s")
 
     # 指标列表
-    indicators = [ R2, RMSECV, r2, RMSEP,RPD, MAE, model_time, total_time, t_time]
+    indicators = [ R2, RMSECV/100, r2, RMSEP/100,RPD, MAE, model_time, total_time, t_time]
 
     if para.__getattribute__("train_n") is not None:
         indicators.insert(0, np.sqrt(0 if r2 < 0 else r2))
@@ -183,7 +194,7 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     row = [all_name,"+".join(preprocess_args["method"]).upper(),"+".join(feature_selection_args["method"]).upper(),model_args["model"].upper() ,*indicators,*params]
 
     if  para.paint is not False:
-        paint(y_test,y_pred_test,R2,RMSECV,r2,RMSEP,RPD,all_name)
+        paint(y_test,y_pred_test,R2,RMSECV/100,r2,RMSEP/100,RPD,all_name)
 
     save2excel(row,header)
     print("\n\n\n")
@@ -266,17 +277,17 @@ if __name__ == '__main__':
     # 模型参数修改在parameters.py中
     # preprocess=[ ["baseline_correction"]]
     # preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
-    preprocess = [["none"],["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
+    # preprocess = [["none"],["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
     # preprocess = [['sg','dt']]
     # preprocess = [['sg']]
-    # preprocess = [['none']]
+    preprocess = [['dt'],['none']]
     # preprocess = [['piecewise_polyfit_baseline_correction']]
     features = [["pca"], ["cars"], ["spa"]]
     # features = [ ["pca"], ["cars","pca"]]
     # features = [["none"] , ["cars"]]
     # features = [['mp5spec_moisture']]
     features = [["none"]]
-    models = ['adaboost']
+    models = ['stacking']
 
     from urllib.request import getproxies
 
@@ -286,8 +297,8 @@ if __name__ == '__main__':
     para.optimal = False
     para.best_opt = True
     para.best_opt = False
-    para.paint=True
     para.paint=False
+    para.paint=True
 
 
 

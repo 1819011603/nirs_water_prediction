@@ -317,7 +317,7 @@ model_args = {
 # C=973.66, gamma=3.7183, epsilo=0.0020
 # 'C': 998.8046, 'gamma': 0.4724, 'epsilon': 0.7003, 'kernel': 'rbf'
 # 'C': 768.47, 'gamma':4.9614, 'epsilon':0.1644, 'kernel': 'rbf'
-# 'C': 973.66, 'gamma':3.7183,  'epsilon':0.0020, 'kernel': 'rbf'
+'C': 973.66, 'gamma':3.7183,  'epsilon':0.0020, 'kernel': 'rbf'
 #         C=991.96, gamma=0.2521, epsilo=0.2394
 # 'C':991.96, 'gamma':.2521,  'epsilon':0.2394, 'kernel': 'rbf'
 #         C=128, gamma=16, epsilo=0.297

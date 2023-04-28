@@ -17,6 +17,8 @@ plt.rcParams["font.family"]="Arial"
 # 解决负号无法显示的问题
 plt.rcParams['axes.unicode_minus'] =False
 
+from nirs.util_paint import *
+
 import nirs.util_paint
 def line_chart( ypoints, humidity=None):
     """
@@ -30,19 +32,21 @@ def line_chart( ypoints, humidity=None):
 
     from nirs.parameters import xpoints
 
-    if(len(xpoints) != len(ypoints)):
-        xpoints = np.arange(len(ypoints))
+    # if(len(xpoints) != len(ypoints)):
+    #     xpoints = np.arange(len(ypoints))
 
     x = xpoints
     y = ypoints
-    m1, m2 = np.min(x), np.max(x)
-    ma1, ma2 = np.min(y), np.max(y)
-    plt.xlim(m1, m2)
-    plt.ylim(ma1, ma2)
+    # print(min(x),max(x))
+    # plt.plot(x, y, ls='solid', lw=1)
+    # m1, m2 = np.min(x), np.max(x)
+    # ma1, ma2 = np.min(y), np.max(y)
+    # plt.xlim(m1, m2)
+    # plt.ylim(ma1, ma2)
 
 
-    plt.xlim(m1,m2)
-    plt.ylim(ma1,ma2)
+    # plt.xlim(m1,m2)
+    # plt.ylim(ma1,ma2)
     if(len(ypoints) == len(xpoints)):
         sep = 15
 
@@ -60,7 +64,10 @@ def line_chart( ypoints, humidity=None):
         X_Y_Spline = make_interp_spline(xpoints, ypoints)
         X_ = np.linspace(min(xpoints), max(xpoints), 1000)
         Y_ = X_Y_Spline(X_)
-        plt.plot(X_, Y_, ls='solid', lw=1 ,label=humidity)
+        if humidity is not  None:
+            plt.plot(X_, Y_, ls='solid', lw=1 ,label=humidity)
+        else:
+            plt.plot(X_, Y_, ls='solid', lw=1)
     else:
         plt.plot(xpoints[len(xpoints ) -len(ypoints):], ypoints, ls='solid', lw=1)
     # 右上角出现小方格  在plt.plot() 定义后plt.legend() 会显示该 label 的内容，否则会报error: No handles with labels found to put in legend.
@@ -71,7 +78,7 @@ def line_chart( ypoints, humidity=None):
 
 def paint(X,pre):
 
-    plt.figure(figsize=(9,6),dpi=100)
+    plt.figure(figsize=(12,7))
     plt.xlim(920,1620)
     ax = plt.gca()
     # ax.spines['top'].set_visible(False)
@@ -86,20 +93,20 @@ def paint(X,pre):
     picture_path = get_log_name(picture_name, suff=suff, dir_path=dir_path)
     # plt.tight_layout()
     print("save in {}".format(picture_path))
-    # plt.savefig(picture_path,format='pdf')
+    plt.savefig(picture_path,dpi=50)
     plt.show()
 
 if __name__ == '__main__':
-    from nirs.parameters import X_train, X_test, preprocess_args
+    from nirs.parameters import X_train_copy, X_test, preprocess_args
 
-    total = np.concatenate((X_train,X_test),axis=0)
+    total = np.concatenate((X_train_copy,X_test),axis=0)
     abo =total
 
     # preprocess = [["none"], ["SNV"], ["MSC"], ["SG"], ["DT"], ["MSC", "DT"], ["SG", "DT"], ["DT", "DT"]]
     # 多元散射校正（MSC）、标准正态变换(SNV)、离散小波变换(DWT)、一阶导数、正交信号校正(orthogonal signal correction， OSC)、Savitzky-Golay(S-G)平滑滤波和去趋势(Detrend)
     preprocess = [["msc"], ["SNV"], ["dwt"], ["d1"],['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
     # preprocess = [ ["piecewise_polyfit_baseline_correction"]]
-    # preprocess = [["none"]]
+    preprocess = [["none"]]
     for p in preprocess:
         preprocess_args["method"] = p
 

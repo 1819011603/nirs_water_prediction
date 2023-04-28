@@ -4,8 +4,10 @@ import numpy as np
 from sklearn.base import BaseEstimator, RegressorMixin
 
 import numpy as np
+from sklearn.model_selection import KFold
 from sklearn.preprocessing import normalize
 import numpy as np
+from sklearn.tree import DecisionTreeRegressor
 
 
 class ELMRegressor(BaseEstimator,RegressorMixin):
@@ -27,7 +29,36 @@ class ELMRegressor(BaseEstimator,RegressorMixin):
         H = self.relu(X.dot(self.random_weights))
         y_pred = H.dot(self.beta)
         return y_pred.flatten()
+class BaggingRegressor(BaseEstimator,RegressorMixin):
+    def __init__(self, n_estimators=10, max_samples=1.0, max_features=1.0):
+        self.n_estimators = n_estimators
+        self.max_samples = max_samples
+        self.max_features = max_features
+        self.estimators_ = []
 
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+
+        for i in range(self.n_estimators):
+            # 训练基模型
+            estimator = DecisionTreeRegressor(max_features=30,max_depth=15)
+            # 随机采样样本和特征
+            sample_indices = np.random.choice(n_samples, size=int(self.max_samples * n_samples), replace=False)
+            # feature_indices = np.random.choice(n_features, size=int(self.max_features * n_features), replace=False)
+            # X_subset = X[sample_indices][:, feature_indices]
+            X_subset = X[sample_indices]
+            y_subset = y[sample_indices]
+            # 训练基模型
+            estimator.fit(X_subset, y_subset)
+            # 将基模型加入集成中
+            self.estimators_.append(estimator)
+
+    def predict(self, X):
+        # 预测结果为基模型的平均值
+        predictions = np.zeros((X.shape[0], len(self.estimators_)))
+        for i, estimator in enumerate(self.estimators_):
+            predictions[:, i] = estimator.predict(X)
+        return np.mean(predictions, axis=1)
 
 import numpy as np
 
@@ -37,7 +68,34 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+class Stacking(BaseEstimator,RegressorMixin):
+    def __init__(self, models, rf):
+        self.models = models
+        self.rf = rf
 
+    def fit(self, X, y):
+        # 利用K折交叉验证生成元数据集
+        kf = KFold(n_splits=5, shuffle=True, random_state=0)
+        meta_data = np.zeros((X.shape[0], len(self.models)))
+        for i, (name, model) in enumerate(self.models):
+            for train_index, test_index in kf.split(X):
+                X_train, X_test = X[train_index], X[test_index]
+                y_train, y_test = y[train_index], y[test_index]
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                meta_data[test_index, i] = y_pred.flatten()
+
+        # 使用元数据训练强学习器
+        self.rf.fit(meta_data, y.flatten())
+
+    def predict(self, X):
+        # 生成元数据集
+        meta_data = np.zeros((X.shape[0], len(self.models)))
+        for i, (name, model) in enumerate(self.models):
+            meta_data[:, i] = model.predict(X).flatten()
+
+        # 预测结果
+        return self.rf.predict(meta_data)
 
 class BPNN(nn.Module,RegressorMixin,BaseEstimator):
     def __init__(self, hidden_size,learning_rate=0.01,num_epochs=10000):

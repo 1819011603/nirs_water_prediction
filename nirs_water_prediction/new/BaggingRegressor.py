@@ -1,4 +1,8 @@
 import numpy as np
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 
 class BaggingRegressor:
@@ -13,7 +17,11 @@ class BaggingRegressor:
 
         for i in range(self.n_estimators):
             # 训练基模型
-            estimator = DecisionTreeRegressor(max_features=30,max_depth=15)
+            # estimator = DecisionTreeRegressor(max_features=30,max_depth=15)
+            # estimator = RandomForestRegressor(n_estimators=50, max_depth=9,max_features=50,random_state=42)
+            estimator =  SVR(kernel='rbf',C=973.66,gamma=3.72,epsilon=0.002)
+            estimator =  PLSRegression(n_components=9)
+            estimator =   MLPRegressor(hidden_layer_sizes=(70,),learning_rate_init=0.05,activation='relu')
             # 随机采样样本和特征
             sample_indices = np.random.choice(n_samples, size=int(self.max_samples * n_samples), replace=False)
             # feature_indices = np.random.choice(n_features, size=int(self.max_features * n_features), replace=False)
@@ -29,7 +37,7 @@ class BaggingRegressor:
         # 预测结果为基模型的平均值
         predictions = np.zeros((X.shape[0], len(self.estimators_)))
         for i, estimator in enumerate(self.estimators_):
-            predictions[:, i] = estimator.predict(X)
+            predictions[:, i] = estimator.predict(X).ravel()
         return np.mean(predictions, axis=1)
 
 

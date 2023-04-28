@@ -9,6 +9,8 @@ from sklearn.tree import DecisionTreeRegressor
 
 from nirs.RegressionNet import Regression
 from nirs.my_model import  *
+from nirs.util_paint import *
+from utils import get_log_name
 
 
 class RBFNet(BaseEstimator,RegressorMixin):
@@ -137,8 +139,9 @@ class Model:
             self.model = SVR(**self.params)
         elif self.method == 'bpnn':
             from sklearn.neural_network import MLPRegressor
-            # self.model = MLPRegressor(**self.params)
-            self.model = BPNN(**self.params)
+            self.model = MLPRegressor(hidden_layer_sizes=(30,),learning_rate_init=0.01,activation='relu',max_iter=1000,  n_iter_no_change=800)
+            self.model = MLPRegressor(hidden_layer_sizes=(20,),learning_rate_init=0.1,activation='relu',max_iter=1000,  n_iter_no_change=800)
+            # self.model = BPNN(**self.params)
         elif self.method == "plsr":
             from sklearn.cross_decomposition import PLSRegression
 
@@ -155,14 +158,54 @@ class Model:
             from nirs.my_model import LSSVM
             self.model = LSSVM(**self.params)
         elif self.method == 'rf':
-             self.model = RandomForestRegressor(**self.params)
+             self.model =  RandomForestRegressor(n_estimators=50, max_depth=9,max_features=50,random_state=42)
+
+        elif self.method == 'bagging':
+             self.model =   BaggingRegressor(n_estimators=60, max_samples=0.8, max_features=0.8)
+        elif self.method == 'xgb':
+
+             import xgboost as xgb
+             self.model = xgb_reg = xgb.XGBRegressor(
+                 objective='reg:squarederror',  # 损失函数为平方误差
+                 learning_rate=0.15,  # 学习率
+                 max_depth=2,  # 决策树最大深度
+                 n_estimators=400,  # 弱学习器个数
+
+                 subsample=1,
+                 colsample_bytree=0.6
+
+                 # early_stopping_rounds=1000,
+             )
+        elif self.method == 'stacking':
+            from sklearn.cross_decomposition import PLSRegression
+
+            from sklearn.svm import SVR
+            models = [
+                # ('plsr', PLSRegression(n_components=11)),
+                ('svr', SVR(kernel='rbf', C=973.66, gamma=3.72, epsilon=0.002)),
+                # ('bpnn', MLPRegressor(hidden_layer_sizes=(100,50)))
+                ('rf', RandomForestRegressor(n_estimators=50, max_depth=9, max_features=50, random_state=42))
+            ]
+
+            # 定义Stacking模型中的强学习器
+            rf = RandomForestRegressor(n_estimators=4, max_depth=7)
+            self.model =   Stacking(models, rf)
+        elif self.method == 'gbdt':
+             self.model =  GradientBoostingRegressor(learning_rate=0.05, n_estimators=200, max_depth=4, max_features=30,
+                                       subsample=1.0, random_state=42, criterion='squared_error', min_samples_split=2)
         elif self.method == 'adaboost':
-            base_model = DecisionTreeRegressor(max_depth=17, random_state=42)
+
+
+            base_estimator = RandomForestRegressor(n_estimators=2, max_depth=11, max_features=30, random_state=42)
+
+            # 创建Adaboost模型
+
+
+
             # self.model = RandomForestRegressor(n_estimators=100, max_depth=20, random_state=42)
             # base_model = sklearn.linea
             # 构建AdaBoost回归模型
-            self.model =  AdaBoostRegressor(base_estimator=base_model, n_estimators=4, learning_rate=0.2,
-                                             random_state=42)
+            self.model =   AdaBoostRegressor(base_estimator=base_estimator, n_estimators=100, random_state=42, learning_rate=0.1)
             # self.model= GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
         elif self.method == 'ielm':
             # self.model = ELMRegressor(100)
@@ -194,6 +237,32 @@ class Model:
 
         self.model.fit(X, y)
 
+        if self.method == 'bpnn1':
+
+            curse = np.array(self.model.loss_curve_)/10000
+            all_name = "myarray"
+
+            pdf_name = get_log_name(all_name,".txt","./pdf")
+            np.savetxt(pdf_name, curse,fmt='%.6f')
+
+            fig = plt.figure(figsize=(8, 8), dpi=150)
+            plt.plot(range( self.model.max_iter), curse)
+            plt.xlabel('Iteration')
+            plt.ylabel('Training Error')
+            plt.show()
+
+            plt.xlabel('Measure value/%')
+            plt.ylabel('Predictive value/%')
+
+            plt.legend()
+            all_name = "bpnn"
+            eps_name = get_log_name(all_name,".eps","./eps")
+            pdf_name = get_log_name(all_name,".pdf","./pdf")
+            plt.savefig(pdf_name, format='pdf')
+            # plt.savefig(eps_name, format='eps')
+
+            print("pdf save in {}".format(pdf_name))
+            plt.show()
     def predict(self, X):
 
         return self.model.predict(X)
