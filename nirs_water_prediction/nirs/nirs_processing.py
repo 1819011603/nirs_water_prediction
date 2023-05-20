@@ -140,7 +140,7 @@ def piecewise_polyfit_baseline_correction(X):
 def dwt(x0):
     # Daubechies小波系
     wavename = 'db5'
-    wavename = 'db38'
+    wavename = 'db6'
     # Symlets小波系
     # print(pywt.wavelist())
     # wavename = 'sym20'
@@ -149,12 +149,12 @@ def dwt(x0):
     # wavename = 'coif17'
     # # Biorthogonal小波系
     # wavename = 'bior6.8'
-
-    cA, cD = pywt.dwt(x0, wavename)
-    x0 = pywt.idwt(cA, None, wavename, 'smooth')  # approximated component
+    for i in range(1):
+        cA, cD = pywt.dwt(x0, wavename)
+        cA= pywt.idwt(cA, None, wavename, 'smooth')  # approximated component
     # x0 = pywt.idwt(cA, None, wavename)  # approximated component
     # x0 = pywt.idwt(None, cD, wavename, 'smooth')  # detailed component
-    return x0
+    return cA
 
 def dt(X):
     for x in range(len(X)):
@@ -163,7 +163,7 @@ def dt(X):
 
 def sg(X):
     for x in range(len(X)):
-        X[x] = signal.savgol_filter(X[x], 7, 3, mode="wrap")
+        X[x] = signal.savgol_filter(X[x], 15, 5, mode="wrap")
     return X
 # 最大最小值归一化
 def mms(data):
@@ -182,18 +182,23 @@ def MA(a, WSZ=5):
 # 一阶导数
 def d1(data):
     n, p = data.shape
-    Di = np.ones((n, p - 1))
+    Di = np.ones((n, p))
     for i in range(n):
-        Di[i] = np.diff(data[i])
+        Di[i] = data[i]
+        Di[i] = signal.savgol_filter(Di[i], 15, 5, 1,mode="wrap")
+
     return np.array(Di)
 
 # 二阶导数
 def d2(data):
     n, p = data.shape
-    Di = np.ones((n, p - 2))
+    Di = np.ones((n, p ))
     for i in range(n):
-        Di[i] = np.diff(np.diff(data[i]))
-    return Di
+        Di[i] = data[i]
+        Di[i] = signal.savgol_filter(Di[i], 15, 5, 2, mode="wrap")
+
+
+    return np.array(Di)
 class Preprocess:
     def __init__(self, method='none', **kwargs):
         self.method = method   if  not  isinstance(method,str) and hasattr(method, '__iter__') else [method]

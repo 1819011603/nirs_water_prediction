@@ -233,6 +233,52 @@ def paint():
     end = time.time()
     print("the spent time is {} seconds".format((end - start)))
 
+def example():
+    import numpy as np
+    from sklearn.datasets import load_iris
+    from sklearn.model_selection import train_test_split
+    from sklearn.neural_network import MLPClassifier
+    from sko.GA import GA
+
+    # 加载鸢尾花数据集
+    data = load_iris()
+    x = data.data
+    y = data.target
+
+    # 划分训练集和测试集
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=1)
+
+
+    # 定义BPNN模型和评价函数
+    def evaluate(solution):
+        # 解码
+        lr = solution[0]
+        hn = int(solution[1])
+        act = ['identity', 'logistic', 'tanh', 'relu'][int(solution[2])]
+
+        # 构建BPNN模型
+        clf = MLPClassifier(hidden_layer_sizes=(hn,), activation=act, solver='adam', learning_rate_init=lr,
+                            max_iter=500)
+
+        # 训练并评价模型
+        clf.fit(x_train, y_train)
+        score = clf.score(x_test, y_test)
+
+        return score
+
+
+    # 定义超参数空间和优化目标
+    x0 = np.array([0.001, 2, 0])
+    bound = np.array([[0.0001, 0.1], [1, 10], [0, 3.9999]])
+    ga = GA(func=evaluate, n_dim=3, size_pop=10, max_iter=20, lb=bound[:, 0], ub=bound[:, 1])
+
+    # 运行遗传算法进行参数寻优
+    best_params, best_score = ga.run()
+
+    # 输出结果
+    print('最优超参数：', best_params)
+    print('最优评分：', best_score)
+
 if __name__ == '__main__':
 
 
@@ -250,7 +296,7 @@ if __name__ == '__main__':
     # [883.0056267   48.46402141]   0.9899132355433415
     # 312.69434992  62.84171658 0.9908128599175112
     # theard_pool.submit(main, GA(func=GA1, n_dim=2, size_pop=50, max_iter=300, prob_mut=0.001, lb=[1, 1], ub=[2000, 1000], precision=1e-6))
-    # main(GA(func=GA1, n_dim=3, size_pop=20, max_iter=50, prob_mut=0.01, lb=[0.0001, 0.0001,0.0001], ub=[1000, 1000,1], precision=1e-4))
+    main(GA(func=GA1, n_dim=3, size_pop=20, max_iter=50, prob_mut=0.01, lb=[0.0001, 0.0001,0.0001], ub=[1000, 1000,1], precision=1e-4))
 
 
 
@@ -268,9 +314,11 @@ if __name__ == '__main__':
     # 366.56346964  60.77225825  0.9907100489875889
     #
 
-    from sko.PSO import PSO
-    # main(PSO(func=GA1, n_dim=2, pop=40, max_iter=150, lb=[1, 1], ub=[2000, 1000], w=0.8, c1=0.5, c2=0.5))
-    P = PSO(func=GA1, n_dim=256, pop=50, max_iter=100, lb=np.zeros(256), ub=np.ones(256), w=0.6, c1=0.5, c2=0.5,verbose=True)
-    # P.paint_w_cp_cg_curse()
-    print("改进")
-    main(P)
+    # from sko.PSO import PSO
+    # # main(PSO(func=GA1, n_dim=2, pop=40, max_iter=150, lb=[1, 1], ub=[2000, 1000], w=0.8, c1=0.5, c2=0.5))
+    # P = PSO(func=GA1, n_dim=256, pop=50, max_iter=100, lb=np.zeros(256), ub=np.ones(256), w=0.6, c1=0.5, c2=0.5,verbose=True)
+    # # P.paint_w_cp_cg_curse()
+    # print("改进")
+    # main(P)
+
+

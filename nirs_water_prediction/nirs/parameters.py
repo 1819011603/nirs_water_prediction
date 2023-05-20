@@ -219,6 +219,64 @@ xpoints = np.array(
      1644.000977, 1647.616089, 1651.25061, 1654.905029, 1658.578979, 1662.273193, 1665.988037, 1669.722778,
      1673.478271, 1677.254883, 1681.052368, 1684.870728, 1688.710693, 1692.572144], dtype=int)
 
+import win32com.client as win32
+
+def convert_png_to_wmf(png_path, wmf_path):
+    # 创建Word应用程序对象
+    word_app = win32.gencache.EnsureDispatch("Word.Application")
+
+    # 打开一个新的Word文档
+    doc = word_app.Documents.Add()
+
+    # 在文档中插入PNG图像
+    doc.InlineShapes.AddPicture(png_path)
+
+    # 将文档保存为WMF格式
+
+
+    doc.SaveAs(wmf_path, FileFormat=3)
+
+    # 关闭Word应用程序
+    word_app.Quit()
+
+def transWMF():
+    import glob
+
+    # 获取当前文件夹下所有PNG图片的文件路径
+    png_files = glob.glob("*.png")
+
+    # 打印每个PNG图片的文件路径
+    for file_path in png_files:
+        convert_png_to_wmf(file_path, file_path[:-3]+"WMF")
+def saveWMF(filename):
+
+    import matplotlib.pyplot as plt
+    from PIL import Image
+    import win32com.client
+
+    import os
+
+    script_path = os.path.abspath(__file__)
+    script_directory = os.path.dirname(script_path)
+    # 保存为PNG格式
+    tmp = f"figure111.png"
+    plt.savefig(tmp)
+
+    # 使用Pillow库打开PNG图像
+    image = Image.open(tmp)
+    filename =  f"{filename}"
+    import time
+
+    convert_png_to_wmf(tmp,filename)
+
+    # 删除中间的PNG文件
+    image.close()
+    print(f"save in {filename}")
+    import os
+
+
+    os.remove(tmp)
+
 
 class Parameter:
     def __int__(self, optimal=False):
@@ -317,7 +375,7 @@ model_args = {
 # C=973.66, gamma=3.7183, epsilo=0.0020
 # 'C': 998.8046, 'gamma': 0.4724, 'epsilon': 0.7003, 'kernel': 'rbf'
 # 'C': 768.47, 'gamma':4.9614, 'epsilon':0.1644, 'kernel': 'rbf'
-'C': 973.66, 'gamma':3.7183,  'epsilon':0.0020, 'kernel': 'rbf'
+# 'C': 973.66, 'gamma':3.7183,  'epsilon':0.0020, 'kernel': 'rbf'
 #         C=991.96, gamma=0.2521, epsilo=0.2394
 # 'C':991.96, 'gamma':.2521,  'epsilon':0.2394, 'kernel': 'rbf'
 #         C=128, gamma=16, epsilo=0.297
@@ -327,7 +385,7 @@ model_args = {
 # 'C': 1906.4584194530692, 'gamma': 477.71211608797796, 'epsilon': 0.0020853886390257348, 'kernel': 'rbf'
 # 'C':400.25, 'gamma':25.023
 #         'kernel':'linear'
-
+        'C': 10, 'gamma': 1, 'epsilon': 0.1, 'kernel': 'rbf'
         # "C": 100,
         # "kernel": "linear",
     },
@@ -437,7 +495,7 @@ data_indice = ['m5spec_moisture','m5spec_oil','m5spec_protein','m5spec_starch',
                'mp5spec_moisture','mp5spec_oil','mp5spec_protein','mp5spec_starch','mp6spec_moisture','mp6spec_oil',
                'mp6spec_protein','mp6spec_starch']
 
-indice = 5
+indice = 8
 X_train,X_test,y_train,y_test =data.get(data_indice[indice])
 # X_train = piecewise_polyfit_baseline_correction(X_train)
 # X_test = piecewise_polyfit_baseline_correction(X_test)

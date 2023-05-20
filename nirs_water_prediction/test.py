@@ -1,66 +1,40 @@
-from keras.models import Model
-from keras.layers import Input, Dense
-from keras import regularizers
-from sklearn.base import RegressorMixin, BaseEstimator
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.linear_model import LinearRegression
+
+
+
 import numpy as np
-from sklearn.neural_network import MLPRegressor
-from sklearn.svm import SVR
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-from nirs.parameters import  X_train,y_train,X_test,y_test
+# 生成示例数据
+x = np.linspace(0, 10, 100)
+y1 = np.random.randint(0, 100, size=100)
+y2 = np.random.randint(0, 100, size=100)
+y3 = np.random.randint(0, 100, size=100)
 
-from sklearn.linear_model import LinearRegression
-from sklearn.feature_selection import f_regression, SelectKBest
-from sklearn.pipeline import Pipeline
+# 获取每条曲线的最后一个值
+last_value_y1 = y1[-1]
+last_value_y2 = y2[-1]
+last_value_y3 = y3[-1]
 
-X = X_train
-y = y_train
+# 创建颜色映射
+cmap = plt.cm.get_cmap('Blues')
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.feature_selection import RFECV
-import numpy as np
-
-
-
-class Model(BaseEstimator,RegressorMixin):
-    def __init__(self,model):
-        self.model = model
-
-    def predict(self,X):
-        return self.model.predict(X)
-    def fit(self,X,y = None):
-        self.model.fit(X,y)
-
-def predict(model):
-    m = Model(model)
-    from nirs.nirs_processing import dt
-    from nirs.parameters import X_train,y_train,X_test,y_test
-    X_train = dt(X_train)
-    X_test = dt(X_test)
-
-    m.fit(X_train,y_train)
-    return m.predict(X_test)
+# 绘制多条曲线并根据最后一个值确定颜色
 
 
+plt.plot(x, y1, color=cmap(last_value_y1/100), label=f'Last Value: {last_value_y1}')
+plt.plot(x, y2, color=cmap(last_value_y2/100), label=f'Last Value: {last_value_y2}')
+plt.plot(x, y3, color=cmap(last_value_y3/100), label=f'Last Value: {last_value_y3}')
+# 添加颜色条
+sm = plt.cm.ScalarMappable(cmap=cmap)
+sm.set_array([])  # 设置空数组以避免警告
+cbar = plt.colorbar(sm)
+cbar.set_label('Values')
+# 添加图例
+plt.legend()
 
-rf = RandomForestRegressor(n_estimators=50, max_depth=9,max_features=50,random_state=42)
-svr = SVR(kernel='rbf',C=973.66,gamma=3.72,epsilon=0.002)
-plsr = PLSRegression(n_components=11)
-bpnn = MLPRegressor(hidden_layer_sizes=(70,),learning_rate_init=0.05,activation='relu')
-
-
-a = predict(rf)
-b = predict(svr)
-
-from scipy.stats import spearmanr
-from scipy.stats import kendalltau
-
-print(kendalltau(a,b))
-print(spearmanr(a,b))
-a = predict(plsr)
-b = predict(bpnn)
-print(kendalltau(a,b))
-
-
-print(spearmanr(a,b))
+# 显示图形
+plt.title("Line Plot with Color based on Last Value")
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.show()

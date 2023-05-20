@@ -141,6 +141,7 @@ class Model:
             from sklearn.neural_network import MLPRegressor
             self.model = MLPRegressor(hidden_layer_sizes=(30,),learning_rate_init=0.01,activation='relu',max_iter=1000,  n_iter_no_change=800)
             self.model = MLPRegressor(hidden_layer_sizes=(20,),learning_rate_init=0.1,activation='relu',max_iter=1000,  n_iter_no_change=800)
+            self.model = MLPRegressor()
             # self.model = BPNN(**self.params)
         elif self.method == "plsr":
             from sklearn.cross_decomposition import PLSRegression
@@ -158,7 +159,7 @@ class Model:
             from nirs.my_model import LSSVM
             self.model = LSSVM(**self.params)
         elif self.method == 'rf':
-             self.model =  RandomForestRegressor(n_estimators=50, max_depth=9,max_features=50,random_state=42)
+             self.model =  RandomForestRegressor(random_state=42)
 
         elif self.method == 'bagging':
              self.model =   BaggingRegressor(n_estimators=60, max_samples=0.8, max_features=0.8)
@@ -178,13 +179,25 @@ class Model:
              )
         elif self.method == 'stacking':
             from sklearn.cross_decomposition import PLSRegression
-
+            from sklearn.neural_network import MLPRegressor
             from sklearn.svm import SVR
+            from sklearn.linear_model import Lasso
             models = [
                 # ('plsr', PLSRegression(n_components=11)),
                 ('svr', SVR(kernel='rbf', C=973.66, gamma=3.72, epsilon=0.002)),
-                # ('bpnn', MLPRegressor(hidden_layer_sizes=(100,50)))
-                ('rf', RandomForestRegressor(n_estimators=50, max_depth=9, max_features=50, random_state=42))
+                # # ('bpnn', MLPRegressor(hidden_layer_sizes=(100,50)))
+                # ('rf', RandomForestRegressor(n_estimators=50, max_depth=9, max_features=50, random_state=42)),
+
+                # ("PLSR", PLSRegression(n_components=11)),
+                # ("AGA-SVR", SVR(kernel='rbf', C=973.66, gamma=3.72, epsilon=0.002)),
+                # ("AGA-BPNN", MLPRegressor(hidden_layer_sizes=(70,), learning_rate_init=0.05, activation='relu',random_state=42)),
+                # ("RF", RandomForestRegressor(n_estimators=50, max_depth=9, max_features=50, random_state=42)),
+                # ("Lasso",Lasso(alpha=0.1)),
+                ("AdaBoost", AdaBoostRegressor(
+                    base_estimator=RandomForestRegressor(n_estimators=2, max_depth=11, max_features=30,
+                                                         random_state=42), n_estimators=100, random_state=42,
+                    learning_rate=0.1)),
+
             ]
 
             # 定义Stacking模型中的强学习器
@@ -206,6 +219,7 @@ class Model:
             # base_model = sklearn.linea
             # 构建AdaBoost回归模型
             self.model =   AdaBoostRegressor(base_estimator=base_estimator, n_estimators=100, random_state=42, learning_rate=0.1)
+            self.model = AdaBoostRegressor(random_state=42)
             # self.model= GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
         elif self.method == 'ielm':
             # self.model = ELMRegressor(100)

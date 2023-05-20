@@ -11,13 +11,14 @@ base_estimator = DecisionTreeRegressor(max_depth=11,max_features=50)
 # 创建SVR基学习器
 # base_estimator = SVR(kernel='rbf',C=50,gamma=5)
 base_estimator = SVR(kernel='rbf',C=50,gamma=15)
-ada = RandomForestRegressor(n_estimators=50, max_depth=9,max_features=50,random_state=42)
+# ada = RandomForestRegressor(n_estimators=50, max_depth=9,max_features=50,random_state=42)
+ada = RandomForestRegressor(n_estimators=50, max_depth=11,max_features=50,random_state=42)
 
 
 
 # 训练模型
 ada.fit(X_train, y_train)
-
+print(ada.feature_importances_)
 # 测试模型
 y_pred = ada.predict(X_test)
 y_train_pred = ada.predict(X_train)

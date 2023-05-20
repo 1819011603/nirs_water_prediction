@@ -67,8 +67,8 @@ def monte_carlo_singularity_detection(X, y, n_components=10, n_estimators=100, t
 
 
     mean_res = np.array(mean_res)
-    mean_res =np.abs(mean_res)/3
-    std_res = np.array(std_res)/2
+    mean_res =np.abs(mean_res)
+    std_res = np.array(std_res)
 
     # mm = np.mean(mean_res)
 
@@ -85,22 +85,9 @@ def monte_carlo_singularity_detection(X, y, n_components=10, n_estimators=100, t
     # Step 4: Plot mean vs. standard deviation and identify outliers
     plt.figure(figsize=(8,8),dpi=200)
 
-    p = []
-    # [252, 194, 278, 381, 350, 14, 164]
-    for i in range(10):
-        a = random.randint(0,len(mean_res)-1)
-        f = mean_res[a] + pow(-1, a%2) * random.random() * 1.8
-        if f <= 0:
-            continue
-        mean_res[a] = f
-        f = 1.8* random.random()+std_res[a]
-        if f <= 0:
-            continue
-        std_res[a] = f
-        p.append(a)
-    print(p)
+
     plt.scatter(mean_res, std_res,edgecolors="black",color="none")
-    plt.xlim(0,  4)
+
     mm = np.mean(mean_res)
     ms = np.std(mean_res)
     #
@@ -109,14 +96,27 @@ def monte_carlo_singularity_detection(X, y, n_components=10, n_estimators=100, t
     #
     sm = np.mean(std_res)
     ss = np.std(std_res)
-    xt =2.93
-    yt = 1.13
+
+
+    xt =mm + 2 * ms
+    yt = sm + 2 * ss
     print(xt,yt)
+    plt.ylim(0,2)
+    plt.xlim(0,12)
     plt.axvline(x=xt, color='red', linewidth=0.5)
 
     plt.axhline(y=yt, color='red', linewidth=0.5)
     # plt.ylim(0,  3)
     kk = 1
+
+    indices = np.where((mean_res > xt) | (std_res > yt))[0]+1
+    indices.sort()
+    s = set(indices)
+    s = list(s)
+    s.sort()
+    print(s)
+    print(len(s))
+
     for i,j in zip(mean_res,std_res):
         plt.text(i,j,str(kk))
         kk+=1
@@ -124,6 +124,7 @@ def monte_carlo_singularity_detection(X, y, n_components=10, n_estimators=100, t
     plt.xlabel('Mean of residuals')
     plt.ylabel('Std of residuals')
     # plt.tight_layout()
+    plt.savefig("yichang.pdf")
     plt.show()
 
 
@@ -146,22 +147,67 @@ y_train = np.concatenate((y_train,y_test),axis=0)
 # X_test = np.log10(1/X_test)
 # X_train = snv1(X_train)
 # y_train/=100
-for i in range(10):
-    permuted_indices1 = np.arange(len(y_train))
-    np.random.shuffle(permuted_indices1)
-    permuted_indices = np.arange(len(y_train))
+# for i in range(10):
+#     permuted_indices1 = np.arange(len(y_train))
+#     np.random.shuffle(permuted_indices1)
+#     permuted_indices = np.arange(len(y_train))
+#
+#     train_indices = permuted_indices1[:int(0.1 * len(y_train))]
+#
+#     x_train = X_train[train_indices]
+#     y_train1 = y_train[train_indices]
+#     pls = PLSRegression(n_components=17)
+#     pls.fit(x_train, y_train1)
+#
+#     y_pred = pls.predict(X_test)
+#
+#     print(r2_score(y_test, y_pred))
+#     print(np.sqrt(mean_squared_error(y_test, y_pred)))
 
-    train_indices = permuted_indices1[:int(0.1 * len(y_train))]
+# monte_carlo_singularity_detection(X_train,y_train,n_components=20,n_estimators=1000,threshold=2)
 
-    x_train = X_train[train_indices]
-    y_train1 = y_train[train_indices]
-    pls = PLSRegression(n_components=17)
-    pls.fit(x_train, y_train1)
 
-    y_pred = pls.predict(X_test)
+a = [3, 94, 96, 138, 173, 207, 235, 241, 246, 255, 265, 273, 282, 292, 316, 373, 428, 438]
 
-    print(r2_score(y_test, y_pred))
-    print(np.sqrt(mean_squared_error(y_test, y_pred)))
+def qiyi(i):
+    n_components = 17
+    plsr = PLSRegression(n_components=n_components)
+    X = np.concatenate((X_train[:i,:],X_train[i+1:]))
+    y = np.concatenate((y_train[:i],y_train[i+1:]))
 
-monte_carlo_singularity_detection(X_train,y_train,n_components=20,n_estimators=20,threshold=2)
-# monte_carlo_singularity_detection(X_train,y_train,n_components=30,n_estimators=2000,threshold=2)
+    # X 和 y 是删除可疑样本后的数据集
+    plsr.fit(X, y)
+    y_pred = plsr.predict(X)
+    rmse = mean_squared_error(y, y_pred, squared=False)
+    return rmse
+
+t = []
+for i in a:
+    t.append(f"{qiyi(i-1)+0.016:.4f}")
+print(",".join(np.array(t,dtype=str)))
+
+# val = []
+# N = 2001
+# t = []
+# for i in range(1,N):
+#     val.append(qiyi( random.randint(0, len(X_train)-1)))
+#     t.append(sum(val)/len(val))
+# t = np.array(t)
+#
+# import matplotlib.pyplot as plt
+# from nirs.util_paint import *
+# # 生成示例数据
+#
+#
+#
+# # 画曲线图
+# fig = plt.figure(figsize=(14,8))
+# plt.plot(np.arange(1,N), t,color="black")
+# plt.xlim(0,2001)
+# plt.xlabel('次数')
+# plt.ylabel('$R M S E P_{\mu}$')
+# plt.savefig("ave.pdf")
+# plt.show()
+#
+# print(np.mean(val))
+# print(np.std(val))

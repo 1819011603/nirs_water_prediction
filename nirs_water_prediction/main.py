@@ -11,10 +11,10 @@ from utils import *
 import numpy as np
 from  nirs.util_paint import  *
 plt.rcParams['font.size'] = 17
-def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
+def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name,val = None):
     import numpy as np
     import matplotlib.pyplot as plt
-    fig = plt.figure(figsize=(8,8),dpi=150)
+    fig = plt.figure(figsize=(8,8))
     # 构造模拟数据
     x = y_test
     y = y_pred_test
@@ -47,8 +47,11 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
     # 绘制数据散点图和回归直线
 
 
-    plt.scatter(x, y,s = 50,color="none",edgecolors="black",label= "$R^2_{P}$=" + f"{r2:.4f}, RMSEP={RMSEP:.4f}")
-    plt.scatter([0], [0],color="none",edgecolors="none",label="$R^2_{CV}$=" + f"{R2:.4f}, RMSECV={RMSECV:.4f}")
+    plt.scatter(x, y,s = 50,color="none",edgecolors="black",label= "$R^2_{P}$=" + f"{r2:.4f}, RMSEP={RMSEP:.2f}%")
+    if val is None:
+        plt.scatter([0], [0],color="none",edgecolors="none",label="$R^2_{CV}$=" + f"{R2:.4f}, RMSECV={RMSECV:.2f}%")
+    else:
+        plt.scatter(val[0], val[1], color="black", edgecolors="black", label="$R^2_{CV}$=" + f"{R2:.4f}, RMSECV={RMSECV:.2}%")
     plt.scatter([0], [0],color="none",edgecolors="none",label=f"RPD={RPD:.4f}")
     if beta0 >= 0:
         plt.plot(X_, Y_, 'r', label='y=%.4fx+%.4f' % (beta1, beta0))
@@ -59,6 +62,13 @@ def paint(y_test, y_pred_test, R2, RMSECV, r2, RMSEP,RPD,all_name):
 
     plt.xlabel('Measure value/%')
     plt.ylabel('Predictive value/%')
+
+    a = "{},{:.4f},{:.4f},{:.4f},{:.4f},{:.4f}".format(all_name,R2,RMSECV,r2,RMSEP,RPD)
+    print(a)
+    with open("a.tct","a") as f:
+        f.write(a + '\n')
+
+
 
     plt.legend()
     eps_name = get_log_name(all_name,".eps","./eps")
@@ -185,7 +195,7 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
 
 
     params_name = ["预处理参数","特征选择参数", "模型参数" ,"真实值" , "预测值"]
-    params = [preprocess_args, feature_selection_args_list, ', '.join([f'{str(k)[:6]}={str(v)[:6]}' for k,v in best_params.items()]) if best_params is not None else '{}', y_test, y_pred_test]
+    params = [preprocess_args, feature_selection_args_list, ', '.join([f'{str(k)[:6]}={str(v)[:6]}' for k,v in best_params.items()]) if best_params is not None else '{}', f"[{','.join(np.array(y_test.ravel(),dtype=str))}]",f"[{','.join(np.array(y_pred_test.ravel(),dtype=str))}]"]
     params = [str(x) for x in params]
 
 
@@ -194,7 +204,7 @@ def main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_ar
     row = [all_name,"+".join(preprocess_args["method"]).upper(),"+".join(feature_selection_args["method"]).upper(),model_args["model"].upper() ,*indicators,*params]
 
     if  para.paint is not False:
-        paint(y_test,y_pred_test,R2,RMSECV/100,r2,RMSEP/100,RPD,all_name)
+        paint(y_test,y_pred_test,R2,RMSECV,r2,RMSEP,RPD,all_name)
 
     save2excel(row,header)
     print("\n\n\n")
@@ -241,7 +251,8 @@ def f(preprocess,features,models):
             for p in preprocess:
                 preprocess_args["method"] = p
                 try:
-                    main(X_train, y_train, X_test, y_test, preprocess_args, feature_selection_args, model_args,
+                    from nirs.parameters import X_train,y_train,X_test,y_test
+                    main(np.array(X_train,copy=True), y_train, np.array(X_test,copy=True), y_test, preprocess_args, feature_selection_args, model_args,
                          index_set=feature_selection_args["index_set"])
 
                 except Exception as e:
@@ -277,17 +288,20 @@ if __name__ == '__main__':
     # 模型参数修改在parameters.py中
     # preprocess=[ ["baseline_correction"]]
     # preprocess=[["MMS"],["none"],["SNV"],["MSC"] ,["SG"], ["DT"],  ["MSC","SNV"],["SG","SNV"], ["DT", "SNV"]]
-    # preprocess = [["none"],["msc"], ["SNV"], ["dwt"], ["d1"], ['ma'], ["piecewise_polyfit_baseline_correction"], ["sg"], ["dt"]]
+    preprocess = [["none"],["msc"], ["SNV"], ["dwt"], ["d1"], ['d2'], ["sg"], ["dt"]]
     # preprocess = [['sg','dt']]
     # preprocess = [['sg']]
-    preprocess = [['dt'],['none']]
+    # preprocess = [['dt'],['sg']]
     # preprocess = [['piecewise_polyfit_baseline_correction']]
-    features = [["pca"], ["cars"], ["spa"]]
+    # preprocess = [['snv']]
+    # preprocess = [['d1'],['d2']]
+    # preprocess = [['dwt','sg']]
+    features = [["none"],["pca"], ["cars"], ["spa"]]
     # features = [ ["pca"], ["cars","pca"]]
     # features = [["none"] , ["cars"]]
     # features = [['mp5spec_moisture']]
     features = [["none"]]
-    models = ['stacking']
+    models = ['svr']
 
     from urllib.request import getproxies
 
@@ -297,8 +311,8 @@ if __name__ == '__main__':
     para.optimal = False
     para.best_opt = True
     para.best_opt = False
-    para.paint=False
     para.paint=True
+    para.paint=False
 
 
 

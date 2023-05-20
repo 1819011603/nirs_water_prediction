@@ -7,15 +7,17 @@ from nirs.nirs_processing import *
 X_train = dt(X_train)
 X_test = dt(X_test)
 from sklearn.svm import SVR
-base_estimator = DecisionTreeRegressor(max_depth=11,max_features=50)
+base_estimator = DecisionTreeRegressor(max_depth=11,max_features=100)
 # 创建SVR基学习器
 # base_estimator = SVR(kernel='rbf',C=50,gamma=5)
-base_estimator = SVR(kernel='rbf',C=50,gamma=15)
-base_estimator = RandomForestRegressor(n_estimators=2, max_depth=11,max_features=30,random_state=42)
+# base_estimator = SVR(kernel='rbf',C=50,gamma=15)
+# base_estimator = RandomForestRegressor(n_estimators=2, max_depth=11,max_features=30,random_state=42)
+# base_estimator = RandomForestRegressor(n_estimators=2, max_depth=11,max_features=30,random_state=42)
 
 # 创建Adaboost模型
 ada = AdaBoostRegressor(base_estimator=base_estimator, n_estimators=50, random_state=42)
-ada = AdaBoostRegressor(base_estimator=base_estimator, n_estimators=100, random_state=42,learning_rate=0.1)
+# ada = AdaBoostRegressor(base_estimator=base_estimator, n_estimators=100, random_state=42,learning_rate=0.1)
+ada = AdaBoostRegressor(base_estimator=DecisionTreeRegressor(max_depth=11,max_features=100), n_estimators=100, random_state=42,learning_rate=2)
 
 # 训练模型
 ada.fit(X_train, y_train)
